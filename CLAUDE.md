@@ -33,10 +33,14 @@ Add to `~/.claude/settings.json`:
 ```jsonc
 "extraKnownMarketplaces": {
   "zlp-harness": {
-    "source": { "source": "directory", "path": "/path/to/zlp-harness" }
+    "source": { "source": "github", "repo": "GiggleLiu/zlp-harness" }
   }
 },
 "enabledPlugins": {
   "zlp-harness@zlp-harness": true
 }
 ```
+
+For local development, swap the source for `{ "source": "directory", "path": "/path/to/zlp-harness" }`.
+
+Each harness repo should ship an in-tree `onboard` skill at `.claude/skills/onboard/SKILL.md` that performs this edit automatically for collaborators on first clone.

@@ -1,0 +1,14 @@
+{
+  "name": "zlp-harness",
+  "owner": {
+    "name": "Jin-Guo Liu"
+  },
+  "plugins": [
+    {
+      "name": "zlp-harness",
+      "description": "Shared skills for Zulip-based research harness repos: collaborator onboarding, reference downloads into .knowledge/, Zulip reply drafting, and harness scaffolding",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}
