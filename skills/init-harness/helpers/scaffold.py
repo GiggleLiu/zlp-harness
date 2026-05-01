@@ -4,15 +4,23 @@
 Reads everything from <skill-dir>/templates/. No external dependencies.
 Idempotent-ish: refuses to overwrite a non-empty target unless --force.
 
-Substitutions performed in *.tmpl files (and in the bundled sub-skill
-SKILL.md / Makefile.tmpl):
-  <<TOPIC>>          → --topic
-  <<ZULIP_STREAM>>   → --zulip-stream
-  <<GITHUB_REMOTE>>  → --github-remote (or "<org>/<repo>" placeholder if empty)
-  <<TOPIC_BLURB>>    → --topic-blurb (or a TODO marker if empty)
+Substitutions performed in *.tmpl files (and in the bundled project-level
+onboard SKILL.md):
+  <<TOPIC>>            → --topic
+  <<ZULIP_STREAM>>     → --zulip-stream
+  <<ZULIP_SITE>>       → --zulip-site (default https://zulip.hkust-gz.edu.cn)
+  <<WORKSPACE_LABEL>>  → --workspace-label (default derived from --zulip-site host)
+  <<GITHUB_REMOTE>>    → --github-remote (or "<org>/<repo>" placeholder if empty)
+  <<TOPIC_BLURB>>      → --topic-blurb (or a TODO marker if empty)
 
-Files copied verbatim (no substitution): AGENTS.md, .gitignore,
-all skills/download-ref/helpers/*.py.
+Files copied verbatim (no substitution): AGENTS.md, .gitignore.
+
+The thin project-level `onboard` skill at templates/skills/onboard/SKILL.md
+is copied into <target>/.claude/skills/onboard/SKILL.md with substitution.
+The plugin's `zlp-onboard`, `zulip-reply`, and `download-ref` skills are
+NOT bundled per-repo — they come from the zlp-harness plugin once it's
+enabled in the user's ~/.claude/settings.json (the bundled `onboard`
+skill does that on first run).
 """
 from __future__ import annotations
 import argparse
@@ -20,6 +28,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES = SKILL_DIR / "templates"
@@ -34,12 +43,33 @@ RENDER_PLAN: list[tuple[str, str, bool]] = [
     ("knowledge/INDEX.md",    ".knowledge/INDEX.md", True),
 ]
 
-# Sub-skills are provided by the zlp-harness plugin (not bundled per-repo).
-SUBSKILLS: list[str] = []
+# Project-level skills bundled into each new harness. zlp-onboard,
+# download-ref, and zulip-reply are NOT here — they live in the
+# zlp-harness plugin and are wired up by the bundled onboard skill.
+SUBSKILLS: list[str] = ["onboard"]
 
 
-def substitute(text: str, *, topic: str, zulip_stream: str,
-               github_remote: str, topic_blurb: str) -> str:
+def derive_workspace_label(zulip_site: str) -> str:
+    """Take the leftmost host label as the workspace dir name.
+
+    Examples:
+      https://zulip.hkust-gz.edu.cn          → hkust-gz
+      https://quantum-info.zulipchat.com     → quantum-info
+      https://chat.zulip.org                 → chat
+    """
+    host = urlparse(zulip_site).hostname or ""
+    if not host:
+        raise SystemExit(f"error: cannot derive workspace label from {zulip_site!r}; "
+                         "pass --workspace-label explicitly.")
+    parts = host.split(".")
+    # If first label is generic ("zulip", "chat"), use the second.
+    if parts[0] in {"zulip", "chat"} and len(parts) > 1:
+        return parts[1]
+    return parts[0]
+
+
+def substitute(text: str, *, topic: str, zulip_stream: str, zulip_site: str,
+               workspace_label: str, github_remote: str, topic_blurb: str) -> str:
     blurb = topic_blurb.strip() or (
         f"<!-- TODO: one paragraph describing what the {topic} harness is "
         f"about. Replace this placeholder. -->"
@@ -48,6 +78,8 @@ def substitute(text: str, *, topic: str, zulip_stream: str,
     return (text
             .replace("<<TOPIC>>", topic)
             .replace("<<ZULIP_STREAM>>", zulip_stream)
+            .replace("<<ZULIP_SITE>>", zulip_site)
+            .replace("<<WORKSPACE_LABEL>>", workspace_label)
             .replace("<<GITHUB_REMOTE>>", remote)
             .replace("<<TOPIC_BLURB>>", blurb))
 
@@ -98,7 +130,13 @@ def main() -> int:
     ap.add_argument("--target-dir", required=True,
                     help="where to scaffold the new harness; must be empty or non-existent")
     ap.add_argument("--zulip-stream", default=None,
-                    help="hkust-gz stream name (default: project-<topic>)")
+                    help="stream name on the Zulip server (default: project-<topic>)")
+    ap.add_argument("--zulip-site", default="https://zulip.hkust-gz.edu.cn",
+                    help="Zulip server URL (default: https://zulip.hkust-gz.edu.cn). "
+                         "Examples: https://quantum-info.zulipchat.com, https://chat.zulip.org")
+    ap.add_argument("--workspace-label", default=None,
+                    help="slug for the local workspace directory ~/zulip-workspaces/<label>/. "
+                         "Default: derived from --zulip-site host (e.g. 'hkust-gz', 'quantum-info').")
     ap.add_argument("--github-remote", default="",
                     help="<org>/<repo> for the README clone link (e.g. CodingThrust/qec.harness); "
                          "empty leaves a placeholder")
@@ -117,6 +155,8 @@ def main() -> int:
         return 2
 
     zulip_stream = args.zulip_stream or f"project-{topic}"
+    zulip_site = args.zulip_site.rstrip("/")
+    workspace_label = args.workspace_label or derive_workspace_label(zulip_site)
     target = Path(args.target_dir).expanduser().resolve()
 
     missing = preflight_templates()
@@ -137,6 +177,8 @@ def main() -> int:
     subs = dict(
         topic=topic,
         zulip_stream=zulip_stream,
+        zulip_site=zulip_site,
+        workspace_label=workspace_label,
         github_remote=args.github_remote.strip(),
         topic_blurb=args.topic_blurb,
     )
@@ -152,9 +194,11 @@ def main() -> int:
         written.append(target / ".claude" / "skills" / s)
 
     print(f"scaffolded {target}")
-    print(f"  topic         = {topic}")
-    print(f"  zulip-stream  = {zulip_stream}")
-    print(f"  github-remote = {args.github_remote or '(none — leave placeholder)'}")
+    print(f"  topic            = {topic}")
+    print(f"  zulip-stream     = {zulip_stream}")
+    print(f"  zulip-site       = {zulip_site}")
+    print(f"  workspace-label  = {workspace_label}")
+    print(f"  github-remote    = {args.github_remote or '(none — leave placeholder)'}")
     print("  files written:")
     for w in written:
         print(f"    {w.relative_to(target)}")
@@ -178,7 +222,7 @@ def main() -> int:
     print( "  2. Edit CLAUDE.md — fill in 'Repository purpose' and any linked external repos.")
     if args.github_remote:
         print(f"  3. (optional) gh repo create {args.github_remote} --private --source=. --push")
-    print( "  4. Open in Claude Code and run /onboard to set up the Zulip bridge.")
+    print( "  4. Open in Claude Code and run /onboard to enable the zlp-harness plugin and set up Zulip.")
     return 0
 
 

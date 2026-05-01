@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 <<TOPIC_BLURB>>
 
-It is a *reference / discussion harness*, not the implementation repo. It bundles the literature library, project notes, and the Zulip bridge to the `<<ZULIP_STREAM>>` stream on `zulip.hkust-gz.edu.cn`.
+It is a *reference / discussion harness*, not the implementation repo. It bundles the literature library, project notes, and the Zulip bridge to the `<<ZULIP_STREAM>>` stream on <<ZULIP_SITE>>.
 
 Git remote: `<<GITHUB_REMOTE>>` (private).
 
@@ -16,11 +16,11 @@ Git remote: `<<GITHUB_REMOTE>>` (private).
 
 Manual checklist if you'd rather DIY:
 
-1. **Claude Code installed** — `.claude/skills/{onboard,download-ref,zulip-reply}/` auto-load when you open this directory with `claude`. No manual registration.
+1. **Claude Code installed** — the project-level `onboard` skill at `.claude/skills/onboard/` auto-loads when you open this directory with `claude`. The `zulip-reply` and `download-ref` skills come from the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, enabled automatically by `onboard` on first run.
 2. **`zlp` CLI** — `pip install zlp-cli`. Used by every `make zulip-*` target.
-3. **A hkust-gz Zulip API key** — log in at <https://zulip.hkust-gz.edu.cn>, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. Save the file to:
+3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. Save the file to:
    ```
-   ~/zulip-workspaces/hkust-gz/zuliprc
+   ~/zulip-workspaces/<<WORKSPACE_LABEL>>/zuliprc
    ```
    `chmod 600` it (it's an API key). That path is the default `ZULIP_WORKSPACE`. To use a different location, set `export ZULIP_WORKSPACE=/your/path` in your shell rc.
 4. **`pymupdf4llm`** (only needed when *adding new references* via the `download-ref` skill) — see the skill's "Preflight" section. Skip this until you actually need it.
@@ -84,9 +84,9 @@ When `download-ref` finishes, **do not** auto-append to `ref.bib` unless this re
 
 ## Zulip channel (`.zulip/`) — discussion archive
 
-Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on `zulip.hkust-gz.edu.cn`. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into `.zulip/` (gitignored).
+Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into `.zulip/` (gitignored).
 
-The Makefile pins the workspace + stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`) from `~/zulip-workspaces/hkust-gz/`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
+The Makefile pins the workspace + stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`) from `~/zulip-workspaces/<<WORKSPACE_LABEL>>/`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
 
 Caveats / gotchas:
 - Stream-wide pulls land in a hash-suffixed folder like `_all-<hash>/` (a `zlp` slugify quirk for the placeholder topic name). Topic-narrowed pulls produce the cleaner `<topic-slug>/` folder.
