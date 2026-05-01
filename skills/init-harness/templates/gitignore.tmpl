@@ -1,0 +1,52 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.synctex(busy)
+*.nav
+*.snm
+*.vrb
+*.lof
+*.lot
+*.bcf
+*.run.xml
+*.fmt
+*.dvi
+*.ps
+
+# Build output PDFs (compiled from root per CLAUDE.md, so they land in root)
+/*.pdf
+report/*.pdf
+survey/*.pdf
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
+
+# Downloaded literature cache for weekly reports (not for Overleaf sync)
+weekly/.literature/
+
+# Build-harness raw blobs (large; rendered .md is the canonical entrypoint)
+.knowledge/.raw/
+.knowledge/.figures/
+
+# Private WeChat chat exports — never commit
+.knowledge/wechat-*/
+
+# Zulip archive (per-machine; pulled from stream)
+.zulip/
+
+# Per-session runtime files
+.claude/scheduled_tasks.lock
+
+# Per-machine Claude Code settings (each collaborator has their own)
+.claude/settings.local.json
+
+*.pyc

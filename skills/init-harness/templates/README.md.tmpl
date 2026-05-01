@@ -1,0 +1,34 @@
+# <<TOPIC>>.harness
+
+<<TOPIC_BLURB>>
+
+This is a *reference / discussion harness* — it bundles the literature library (`.knowledge/`), project notes, and the Zulip bridge to the `<<ZULIP_STREAM>>` stream on `zulip.hkust-gz.edu.cn`. Implementation code lives elsewhere.
+
+## Getting started
+
+### 1. Install the `zlp-harness` plugin
+
+The skills for onboarding, downloading references, and replying on Zulip are provided by the `zlp-harness` plugin. Install it once per machine — add this to your `~/.claude/settings.json`:
+
+```jsonc
+"extraKnownMarketplaces": {
+  "zlp-harness": {
+    "source": { "source": "github", "repo": "CodingThrust/zlp-harness" }
+  }
+},
+"enabledPlugins": {
+  "zlp-harness@zlp-harness": true
+}
+```
+
+### 2. Clone and onboard
+
+Open [Claude Code](https://claude.com/claude-code) in any directory and paste:
+
+```
+clone https://github.com/<<GITHUB_REMOTE>> and invoke the onboard skill.
+```
+
+The `onboard` skill detects what you already have, walks you through getting a hkust-gz Zulip API key, sets up the workspace, and verifies the bridge with `make zulip-whoami`.
+
+For everything else (commands, knowledge base layout, adding references, posting to Zulip), see [`CLAUDE.md`](CLAUDE.md).

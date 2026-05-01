@@ -1,0 +1,38 @@
+# Zulip bridge for the hkust-gz / <<ZULIP_STREAM>> stream.
+# Archive lands under .zulip/ in the repo and is gitignored locally so it
+# never round-trips to GitHub.
+#
+# Per-machine override: set ZULIP_WORKSPACE to wherever your hkust-gz workspace
+# lives, e.g. in your shell rc:
+#   export ZULIP_WORKSPACE=$HOME/zulip-workspaces/hkust-gz
+# The workspace dir must contain a `zuliprc` (Zulip API key file).
+
+ZULIP_WORKSPACE ?= $(HOME)/zulip-workspaces/hkust-gz
+ZULIP_STREAM    := <<ZULIP_STREAM>>
+ZULIP_LOCAL     := $(CURDIR)/.zulip
+
+export ZULIP_CONFIG_FILE := $(ZULIP_WORKSPACE)/zuliprc
+export ZLP_ARCHIVE_ROOT  := $(ZULIP_LOCAL)
+export ZLP_RUN_ROOT      := $(ZULIP_LOCAL)/.run
+
+ZLP := zlp
+
+.PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages
+
+zulip-whoami:
+	$(ZLP) whoami
+
+zulip-topics:
+	$(ZLP) topics --stream "$(ZULIP_STREAM)"
+
+zulip-messages:
+	$(ZLP) messages --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") --limit "$(or $(LIMIT),50)" --format "$(or $(FORMAT),md)"
+
+zulip-pull:
+	$(ZLP) pull --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") $(if $(IMPORT_HISTORY),--import-history)
+
+zulip-send:
+	@test -n "$(TOPIC)" || { echo "TOPIC=... required"; exit 1; }
+	@test -n "$(MSG)$(MSG_FILE)" || { echo "MSG=... or MSG_FILE=... required"; exit 1; }
+	$(ZLP) send --stream "$(ZULIP_STREAM)" --topic "$(TOPIC)" \
+	  $(if $(MSG),--msg "$(MSG)") $(if $(MSG_FILE),--msg-file "$(MSG_FILE)")
