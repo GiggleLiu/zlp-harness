@@ -9,6 +9,7 @@ Claude Code plugin providing skills for Zulip-based research harness repos.
 | `zlp-onboard` | Bootstrap a collaborator's machine: install `zlp-cli`, help download `zuliprc`, create the local credential directory, verify the Zulip bridge. Site-agnostic — reads site / default credential path / stream from each harness's `make zulip-config`. Usually invoked from a harness's project-level `onboard` skill via `Skill("zlp-harness:zlp-onboard")`. |
 | `download-ref` | Batch-fetch arXiv/DOI papers into `.knowledge/`, render to markdown, regenerate INDEX. Falls back to SciHub MCP for paywalled DOIs. |
 | `zulip-reply` | Pull new Zulip messages, build context from the project library, draft + send a reply. |
+| `zlp-advisor` | Weekly advisor pass: sync recent Zulip discussion, audit student TODOs, search `CLAUDE.md`-configured reliable current sources, draft a weekly update. |
 | `init-harness` | Scaffold a new `<topic>.harness` repo (Makefile, CLAUDE.md, .knowledge/, .gitignore). |
 
 ## Architecture

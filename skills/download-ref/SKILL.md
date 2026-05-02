@@ -22,17 +22,17 @@ The renderer uses **pymupdf4llm** for the highest-fidelity output (preserves fig
 python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)"
 ```
 
-If that errors, install for the **same** `python3` the helpers will use (typically `/opt/homebrew/bin/python3` on macOS, **not** Anaconda's):
+If that errors, install for the **same** `python3` the helpers will use. Check the interpreter first:
 
 ```sh
-# macOS / Homebrew Python
-/opt/homebrew/bin/python3 -m pip install --user --break-system-packages pymupdf4llm
-
-# Linux / system Python
+which python3
 python3 -m pip install --user pymupdf4llm
+
+# If pip reports an externally-managed-environment / PEP 668 error:
+python3 -m pip install --user --break-system-packages pymupdf4llm
 ```
 
-`--break-system-packages` is required on Homebrew Python (PEP 668) and is benign here.
+Use `--break-system-packages` only when pip asks for it.
 
 Other helpers used: `requests` (almost always present), and optionally `markitdown` / `pdftotext` for fallback.
 
@@ -66,7 +66,7 @@ POSIX `[ -f … ]` is zsh-safe; `ls "$KB/.raw/arxiv/$id".*` triggers `no matches
 ### 2. Build a one-shot manifest
 
 ```sh
-TMP=/tmp/download-ref-manifest.json
+TMP=$(mktemp)
 cat > "$TMP" <<'EOF'
 {"arxiv": ["1806.08734", "2006.10739"], "doi": []}
 EOF

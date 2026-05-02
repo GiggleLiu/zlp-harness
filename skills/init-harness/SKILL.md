@@ -29,7 +29,7 @@ Do NOT use when:
   .claude/skills/onboard/SKILL.md # thin two-phase: enable plugin → delegate to zlp-harness:zlp-onboard
 ```
 
-The `zlp-onboard`, `download-ref`, and `zulip-reply` skills are **not** bundled per-repo — they are provided by the `zlp-harness` plugin. The only skill bundled into each harness is the project-level `onboard`, which exists to install/enable the plugin on a collaborator's first run and then delegate.
+The `zlp-onboard`, `download-ref`, `zulip-reply`, and `zlp-advisor` skills are **not** bundled per-repo — they are provided by the `zlp-harness` plugin. The only skill bundled into each harness is the project-level `onboard`, which exists to install/enable the plugin on a collaborator's first run and then delegate.
 
 All scaffold templates are bundled inside this skill at `templates/`. The skill does **not** read from any other repo — it is a closed unit.
 
@@ -112,7 +112,7 @@ gh repo create "<github-remote>" --private --source=. --push \
 
 Confirm with the user before running — `gh repo create` is observable to the org and pushes the seed commit. Don't bundle this into Phase 1 silently.
 
-If the user wants to invite a collaborator afterwards (the original `qec.harness` invited `nzy1997`):
+If the user wants to invite a collaborator afterwards:
 
 ```sh
 gh repo edit "<github-remote>" --add-collaborator <github-handle>
@@ -131,8 +131,8 @@ cd "<target-dir>"
 #      plugin, then ask the user to restart Claude Code.
 #   2. (After restart) delegate to Skill("zlp-harness:zlp-onboard") which
 #      reads `make zulip-config` from this harness for site/path/stream
-#      values, walks zlp-cli + zuliprc + verification, and runs the
-#      initial mirror sync.
+#      values, walks zlp-cli + zuliprc + verification, runs the
+#      initial message sync, and recommends adding key refs.
 ```
 
 Notes:
@@ -167,7 +167,7 @@ Next steps for the user:
 | Pointing `ZULIP_STREAM` at a stream that doesn't exist on Zulip yet | The bridge can't create streams. Have the user (or Zulip admin) make the stream on the web UI first; only then will `make zulip-topics` succeed. |
 | Mixing up `--zulip-site` and `--config-label` | `--zulip-site` is the full URL (`https://...`); `--config-label` is a slug used in the local credential path (`hkust-gz`, `quantum-info`). The helper derives the latter from the host if you don't pass it. |
 | Running Phase 3's `/onboard` without `cd`-ing into the new repo | The project-level `onboard` only exists inside the new harness; running it from elsewhere either picks up a different harness's onboard or fails to find one. Always switch directories before invoking. |
-| Editing the templates without testing the next scaffold | `templates/` is the source of truth for every future harness; a typo here propagates. After editing any `*.tmpl`, run the helper into `/tmp/scratch-harness` to verify the rendered output is what you expected. |
+| Editing the templates without testing the next scaffold | `templates/` is the source of truth for every future harness; a typo here propagates. After editing any `*.tmpl`, run the helper into a scratch directory to verify the rendered output is what you expected. |
 | Bundling `__pycache__/` from the local machine into `templates/` | The helper's `rglob` skips `__pycache__` parts explicitly, but be aware. |
 
 ## Done checklist

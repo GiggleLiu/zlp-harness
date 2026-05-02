@@ -25,7 +25,7 @@ Manual checklist if you'd rather DIY:
    Create the directory first if needed, then `chmod 600` the file. Do not paste the file contents into chat; it contains an API key.
 4. **`pymupdf4llm`** (only needed when *adding new references* via the `download-ref` skill) — see the skill's "Preflight" section. Skip this until you actually need it.
 
-Verify with `make zulip-whoami` — should print your account.
+Verify with `make zulip-whoami` — should print your account. Then run `make zulip-pull IMPORT_HISTORY=1` once to sync the stream into `.zulip/`. After messages are synced, add the project’s key arXiv/DOI references with the `download-ref` skill so future work is grounded in the local `.knowledge/` library.
 
 ## Common commands
 
@@ -47,7 +47,7 @@ make zulip-pull IMPORT_HISTORY=1        # first-time backfill / reset cursor
 
 # Post a message (creates the topic if it doesn't exist — verify spelling first)
 make zulip-send TOPIC=<topic-name> MSG="hello"
-make zulip-send TOPIC=<topic-name> MSG_FILE=/tmp/msg.md
+make zulip-send TOPIC=<topic-name> MSG_FILE=.zulip/.drafts/msg.md
 ```
 
 Adding references to `.knowledge/` is done via the `download-ref` skill, not `make` — see "Adding a new reference" below.
@@ -68,6 +68,22 @@ rg --hidden -g '!.raw' -g '!.figures' "term" .knowledge/
 
 If a relevant paper isn't in `.knowledge/`, use the `download-ref` skill rather than answering from generic prior knowledge.
 
+## Reliable update sources (`zlp-advisor`)
+
+Use these sources when looking for current external updates during weekly advisor checks. The onboarding flow should help fill this in after Zulip syncs.
+
+- Source types: arXiv, web search, other reliable sources
+- arXiv queries / categories:
+  - <!-- TODO: e.g. project keywords, arXiv categories, method names -->
+- Web-search keywords:
+  - <!-- TODO: project-specific keywords for reliable/official sources -->
+- People / groups / venues / benchmarks to watch:
+  - <!-- TODO: prominent authors, labs, conferences, benchmarks, datasets, methods -->
+- Other reliable sources:
+  - <!-- TODO: official project docs, release notes, benchmark pages, conference pages, publisher pages -->
+- Avoid:
+  - unsourced social posts, SEO blogs, and generic news summaries unless explicitly requested
+
 ## Adding a new reference (`download-ref` skill)
 
 `download-ref` is the entry point for any "add this arXiv/DOI to the KB" request. It is documented in `.claude/skills/download-ref/SKILL.md` and calls helpers under `.claude/skills/download-ref/helpers/` (in-tree, no external dependency):
@@ -77,7 +93,7 @@ If a relevant paper isn't in `.knowledge/`, use the `download-ref` skill rather 
 3. `index.py --kb .knowledge --title "<<TOPIC>> — references" --source-note "Reading list and full-text harness for the <<TOPIC>> project. arXiv preprints, DOIs (with arXiv-preprint fallbacks where the publisher gates the PDF)."`
 
 Invariants the skill assumes:
-- The renderer needs `pymupdf4llm` available to whichever Python `python3` resolves to. Anaconda's pymupdf4llm sometimes doesn't satisfy it — `which python3` first.
+- The renderer needs `pymupdf4llm` available to whichever Python `python3` resolves to. Installing it into a different Python environment will not satisfy the helper — `which python3` first.
 - `--source-note` and `--title` strings must stay stable across runs or `INDEX.md` will churn. Copy them verbatim from the existing `INDEX.md` header on every re-run.
 
 When `download-ref` finishes, **do not** auto-append to `ref.bib` unless this repo has a LaTeX draft (`main.tex`) — the append step in the skill is dormant until then.
@@ -100,9 +116,11 @@ Caveats / gotchas:
 
 **"Add this arXiv ref"** → Use the `download-ref` skill. Manifest accepts both `arxiv` and `doi` lists; the skill is idempotent.
 
-**"Post links to Zulip"** → Draft to `/tmp/<file>.md`, then `make zulip-send TOPIC="<topic>" MSG_FILE=/tmp/<file>.md`. Match the existing message style in the target topic (concise, numbered, `[Title](URL)`); check with `make zulip-messages TOPIC="<topic>" LIMIT=5` first.
+**"Post links to Zulip"** → Draft to `.zulip/.drafts/<file>.md`, then `make zulip-send TOPIC="<topic>" MSG_FILE=.zulip/.drafts/<file>.md`. Match the existing message style in the target topic (concise, numbered, `[Title](URL)`); check with `make zulip-messages TOPIC="<topic>" LIMIT=5` first.
 
 **"Check Zulip" / "what did X say" / "draft a reply"** → invoke the **`zulip-reply` skill** (in `.claude/skills/zulip-reply/`). It pulls new messages, grounds each in `.knowledge/`, walks them one-by-one with quoted-body context, and asks before sending.
+
+**"Weekly advisor check" / "student TODOs" / "latest updates for the project"** → invoke the **`zlp-advisor` skill** from the plugin. It reviews the last week of Zulip discussion, checks that student TODOs are created and respected, searches reliable current sources, and drafts a weekly advisor post for approval.
 
 ## What is *not* in this repo
 

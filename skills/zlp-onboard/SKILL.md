@@ -84,7 +84,7 @@ If everything is ✓ and `make zulip-whoami` returns successfully, the onboardin
 pip install zlp-cli
 ```
 
-If `pip` reports PEP 668 / "externally-managed-environment" errors on macOS Homebrew Python, use:
+If `pip` reports a PEP 668 / "externally-managed-environment" error, use:
 
 ```sh
 pip install --user --break-system-packages zlp-cli
@@ -134,8 +134,8 @@ If the browser used a different filename, replace `~/Downloads/zuliprc` with the
 If the user wants to keep the credentials somewhere else, then set `ZULIP_CONFIG_DIR` for that custom location:
 
 ```sh
-echo 'export ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"' >> ~/.zshrc
-source ~/.zshrc
+# Add this export to the user's shell startup file, then open a fresh shell:
+export ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"
 ```
 
 or pass it inline for a single command:
@@ -177,10 +177,10 @@ Only needed if they'll use the `download-ref` skill to add new arXiv/DOI papers 
 # Check which python3 the renderer will use:
 which python3
 
-# Install for that interpreter (macOS Homebrew needs the break flag):
-python3 -m pip install --user --break-system-packages pymupdf4llm
-# Linux / system python:
+# Install for that interpreter:
 python3 -m pip install --user pymupdf4llm
+# If pip reports an externally-managed-environment / PEP 668 error:
+python3 -m pip install --user --break-system-packages pymupdf4llm
 
 # Verify:
 python3 -c "import pymupdf4llm; print(pymupdf4llm.__version__)"
@@ -188,13 +188,90 @@ python3 -c "import pymupdf4llm; print(pymupdf4llm.__version__)"
 
 The `download-ref` skill's Preflight section has the same check; this step just front-loads it.
 
-### Step 7 — Backfill the local Zulip archive (recommended)
+### Step 7 — Sync the local Zulip archive
 
 ```sh
 make zulip-pull IMPORT_HISTORY=1
+find .zulip -name '*.md' -print -quit 2>/dev/null
 ```
 
-This pulls every message in `$CFG_ZULIP_STREAM` into `.zulip/` (gitignored). After this runs once, daily catch-up is just `make zulip-pull`.
+This pulls the available history in `$CFG_ZULIP_STREAM` into `.zulip/` (gitignored). Do not treat onboarding as complete until `make zulip-pull IMPORT_HISTORY=1` exits successfully.
+
+If `find` prints a path, the archive has local message files. If it prints nothing, check the command output: a brand-new or empty stream can sync successfully with no message files. In that case, tell the user the stream is reachable but currently has no archived messages. After this first sync, daily catch-up is just `make zulip-pull`.
+
+### Step 8 — Recommend key reference downloads
+
+Before ending onboarding, recommend that the user populate `.knowledge/` with the project’s key references:
+
+```
+Zulip is synced. Next, it is worth downloading the project’s core arXiv/DOI references into `.knowledge/` with the `download-ref` skill, so future Zulip replies and research questions are grounded in the local library. Send me the key arXiv IDs/DOIs, or ask me to identify likely key refs from the synced Zulip discussion and existing project notes.
+```
+
+If the user provides arXiv IDs or DOIs, invoke `download-ref` next. If they want help identifying key references, inspect `.zulip/`, `CLAUDE.md`, and `.knowledge/INDEX.md` first, then propose a short candidate list before downloading.
+
+### Step 9 — Configure reliable update sources for `zlp-advisor`
+
+Before ending onboarding, help the user define where weekly "latest update" searches should look. This belongs in the harness's `CLAUDE.md`, so future `zlp-advisor` runs use project-specific sources instead of guessing.
+
+First inspect local context:
+
+```sh
+rg -n "Repository purpose|Reliable update sources|Knowledge base|Weekly advisor|Zulip channel" CLAUDE.md
+test -f .knowledge/INDEX.md && sed -n '1,120p' .knowledge/INDEX.md
+find .zulip -name '*.md' -print -quit 2>/dev/null
+```
+
+Then propose a compact pick-list. Include:
+
+- **Source types**: `arXiv`, `web search`, and `other reliable sources`.
+- **Keywords**: 6-10 project-specific phrases from `CLAUDE.md`, `.knowledge/INDEX.md`, and recent Zulip discussions.
+- **Big names to watch**: 3-8 prominent authors, labs, venues, benchmarks, datasets, or methods. Prefer names already evidenced in `.knowledge/` or Zulip. If evidence is thin, label them as provisional suggestions and ask the user to correct them.
+- **Other reliable sources**: official conference/workshop pages, benchmark/dataset leaderboards, standards/docs, project release notes, publisher pages, or lab pages relevant to this project.
+
+Ask the user to choose and edit. Example prompt:
+
+```md
+For weekly advisor updates, which reliable sources should I track?
+
+Source types:
+- arXiv search
+- web search over reliable/official sources
+- other reliable sources you name
+
+Candidate keywords:
+- <keyword 1>
+- <keyword 2>
+- <keyword 3>
+
+Candidate big names / venues / benchmarks:
+- <name 1> — why it appears relevant
+- <name 2> — why it appears relevant
+
+Other reliable sources to include:
+- <official site, benchmark, conference, lab page, docs, or release page>
+```
+
+After the user chooses, add or update this section in `CLAUDE.md`:
+
+```md
+## Reliable update sources (`zlp-advisor`)
+
+Use these sources when looking for current external updates during weekly advisor checks.
+
+- Source types: arXiv, web search, other reliable sources
+- arXiv queries / categories:
+  - <query or category>
+- Web-search keywords:
+  - <keyword>
+- People / groups / venues / benchmarks to watch:
+  - <name> — <why relevant>
+- Other reliable sources:
+  - <URL or source name> — <why reliable/relevant>
+- Avoid:
+  - unsourced social posts, SEO blogs, and generic news summaries unless the user explicitly asks
+```
+
+Do not invent authority. If the user does not know yet, write a short provisional section with TODO markers and tell them `zlp-advisor` will ask again before relying on weak sources.
 
 ## Done checklist
 
@@ -203,7 +280,9 @@ This pulls every message in `$CFG_ZULIP_STREAM` into `.zulip/` (gitignored). Aft
 - [ ] `zuliprc` exists at `<credential-dir>/zuliprc` with mode 600
 - [ ] `make zulip-whoami` returns the user's email + display name
 - [ ] `make zulip-topics` lists topics in `$CFG_ZULIP_STREAM` (empty list is fine for a brand-new stream)
-- [ ] `.zulip/` populated by `make zulip-pull IMPORT_HISTORY=1`
+- [ ] `make zulip-pull IMPORT_HISTORY=1` completed; `.zulip/` has messages, or the user was told the stream currently has none
+- [ ] User was advised to download key project references with `download-ref`
+- [ ] `CLAUDE.md` has a `Reliable update sources (zlp-advisor)` section, or the user intentionally deferred it
 - [ ] (Optional) `pymupdf4llm` importable by `python3`
 
 After this, the user should:
@@ -218,7 +297,7 @@ After this, the user should:
 | Hardcoding "hkust-gz" or any other site label into the prompts you show the user | All site/path values come from `make zulip-config`. Re-read Step 0; do not paste site URLs from memory. |
 | Running this skill from outside a harness directory | `make zulip-config` only exists inside a harness root. cd into the repo first. |
 | Pasting the zuliprc contents into chat | Don't. Keys are secrets. Have the user `mv` the downloaded file locally. |
-| Installing pymupdf4llm into Anaconda Python when `python3` resolves to `/opt/homebrew/bin/python3` | Run `which python3` first, then install for *that* interpreter. The renderer runs `python3` directly, not `conda run python`. |
+| Installing pymupdf4llm into a different Python environment than `python3` uses | Run `which python3` first, then install for *that* interpreter. The renderer runs `python3` directly. |
 | Putting `zuliprc` directly under the repo | Keep secrets out of the checkout. Put it in the credential directory printed by `make zulip-config`. |
 | Forgetting `chmod 600 zuliprc` | The key is in plain text. World-readable mode bits leak it to anyone with shell access. |
 | Treating `make zulip-pull` `archived=0` as a failure | It just means no new messages since the last pull. Not an error. |
