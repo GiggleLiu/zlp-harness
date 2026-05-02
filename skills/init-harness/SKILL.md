@@ -19,7 +19,7 @@ Do NOT use when:
 
 ```
 <topic>.harness/
-  Makefile                        # zulip-* targets + zulip-config; ZULIP_STREAM/ZULIP_SITE/WORKSPACE_DEFAULT substituted
+  Makefile                        # zulip-* targets + zulip-config; ZULIP_STREAM/ZULIP_SITE/CONFIG_DIR_DEFAULT substituted
   CLAUDE.md                       # repo conventions for future Claude sessions
   README.md                       # single-prompt onboarding instruction
   AGENTS.md                       # @CLAUDE.md
@@ -42,8 +42,8 @@ Bundle the questions into one `AskUserQuestion` exchange — don't ping per-fiel
 | `topic` | (required) | lowercase, hyphenated slug. Examples: `qec`, `attention-solids`, `llm`. Used in repo / stream / file paths. |
 | `target-dir` | (required) | absolute path or expression like `~/code/<topic>.harness`. Must be empty or non-existent (the helper refuses non-empty unless `--force`). |
 | `zulip-stream` | `project-<topic>` | the stream the bridge will target. Must already exist on Zulip — created via the web UI by an admin. |
-| `zulip-site` | `https://zulip.hkust-gz.edu.cn` | the Zulip server URL the harness uses. Override for non-hkust-gz workspaces (e.g. `https://quantum-info.zulipchat.com`). |
-| `workspace-label` | derived from `zulip-site` | one-word slug used in `~/zulip-workspaces/<label>/`. Default: take the host's leftmost label (e.g. `hkust-gz`, `quantum-info`). |
+| `zulip-site` | `https://zulip.hkust-gz.edu.cn` | the Zulip server URL the harness uses. Override for non-hkust-gz sites (e.g. `https://quantum-info.zulipchat.com`). |
+| `config-label` | derived from `zulip-site` | one-word slug used in `~/.config/zlp-harness/<label>/`. Default: take the host's leftmost label (e.g. `hkust-gz`, `quantum-info`). |
 | `github-remote` | (optional) | `<org>/<repo>` for the README clone link, e.g. `CodingThrust/<topic>.harness`. Empty leaves a `<org>/<repo>` placeholder. |
 | `topic-blurb` | (optional) | one paragraph for "Repository purpose". Empty leaves a TODO marker; user can edit `CLAUDE.md` afterwards. |
 | `git-init` | yes / no | run `git init` + a single seed commit. Default yes. |
@@ -84,7 +84,7 @@ python3 "$SKILL_DIR/helpers/scaffold.py" \
   --target-dir      "<target-dir>" \
   --zulip-stream    "project-<topic>" \
   --zulip-site      "https://zulip.hkust-gz.edu.cn" \
-  --workspace-label "hkust-gz" \
+  --config-label    "hkust-gz" \
   --github-remote   "CodingThrust/<topic>.harness" \
   --topic-blurb     "<one paragraph, or empty>" \
   --git-init                                      # omit to skip git init
@@ -94,7 +94,7 @@ The helper:
 1. Validates `--topic` is lowercase + hyphenated.
 2. Refuses to scaffold into a **non-empty** target unless `--force` is passed (don't pass `--force` without explicit user permission — the destination might be in-progress work).
 3. Verifies all required template files exist inside `templates/` before writing anything.
-4. Renders `Makefile`, `CLAUDE.md`, `README.md`, `.knowledge/INDEX.md` from `*.tmpl` with `<<TOPIC>>`, `<<ZULIP_STREAM>>`, `<<ZULIP_SITE>>`, `<<WORKSPACE_LABEL>>`, `<<GITHUB_REMOTE>>`, `<<TOPIC_BLURB>>` substituted.
+4. Renders `Makefile`, `CLAUDE.md`, `README.md`, `.knowledge/INDEX.md` from `*.tmpl` with `<<TOPIC>>`, `<<ZULIP_STREAM>>`, `<<ZULIP_SITE>>`, `<<CONFIG_LABEL>>`, `<<GITHUB_REMOTE>>`, `<<TOPIC_BLURB>>` substituted.
 5. Copies `AGENTS.md` and `.gitignore` verbatim (no substitution needed — already generic).
 6. Recursively copies `.claude/skills/onboard/SKILL.md` from `templates/skills/onboard/`. The thin project-level onboard skill goes through the same substitution pass so its frontmatter description mentions the topic.
 7. If `--git-init`: `git init`, `git add .`, single commit `scaffold <topic>.harness from init-harness skill`.
@@ -138,7 +138,7 @@ cd "<target-dir>"
 Notes:
 - If the user has already enabled `zlp-harness` from a previous harness, Phase A is a no-op and Phase B chains in immediately — no restart needed.
 - If `<zulip-stream>` doesn't yet exist on Zulip, `make zulip-topics` returns nothing (or an error). The bridge **cannot** auto-create the stream — an admin must create it via the Zulip web UI first. Tell the user; don't try to work around it.
-- The bundled project-level onboard is workspace-agnostic — its description field stays generic, no per-harness patching needed beyond the topic substitution that Phase 1 already does.
+- The bundled project-level onboard is site-agnostic — its description field stays generic, no per-harness patching needed beyond the topic substitution that Phase 1 already does.
 
 ### Phase 4 — Hand off
 
@@ -164,8 +164,8 @@ Next steps for the user:
 | Pointing `--target-dir` at a populated directory | The helper refuses unless `--force` is passed. Don't pass `--force` without explicit user OK — you might clobber in-progress work. Pick a fresh directory instead. |
 | Reading from `.../qec/.claude/skills/...` while running this skill | Don't. This skill is **standalone**: every template lives under this skill's `templates/` directory. If you find yourself hand-copying from another repo, you've taken a wrong turn — re-run the helper. |
 | Skipping the GitHub-remote question because it's "optional" | Ask anyway. Without it the README contains a `<org>/<repo>` placeholder that breaks the one-line onboarding paste in `README.md`. Easier to set it now than retrofit. |
-| Pointing `ZULIP_STREAM` at a stream that doesn't exist on Zulip yet | The bridge can't create streams. Have the user (or workspace admin) make the stream on the web UI first; only then will `make zulip-topics` succeed. |
-| Mixing up `--zulip-site` and `--workspace-label` | `--zulip-site` is the full URL (`https://...`); `--workspace-label` is a slug used in filesystem paths (`hkust-gz`, `quantum-info`). The helper derives the latter from the host if you don't pass it. |
+| Pointing `ZULIP_STREAM` at a stream that doesn't exist on Zulip yet | The bridge can't create streams. Have the user (or Zulip admin) make the stream on the web UI first; only then will `make zulip-topics` succeed. |
+| Mixing up `--zulip-site` and `--config-label` | `--zulip-site` is the full URL (`https://...`); `--config-label` is a slug used in the local credential path (`hkust-gz`, `quantum-info`). The helper derives the latter from the host if you don't pass it. |
 | Running Phase 3's `/onboard` without `cd`-ing into the new repo | The project-level `onboard` only exists inside the new harness; running it from elsewhere either picks up a different harness's onboard or fails to find one. Always switch directories before invoking. |
 | Editing the templates without testing the next scaffold | `templates/` is the source of truth for every future harness; a typo here propagates. After editing any `*.tmpl`, run the helper into `/tmp/scratch-harness` to verify the rendered output is what you expected. |
 | Bundling `__pycache__/` from the local machine into `templates/` | The helper's `rglob` skips `__pycache__` parts explicitly, but be aware. |
@@ -175,8 +175,8 @@ Next steps for the user:
 After the helper finishes, verify (the user might do this themselves; if they don't, you do):
 
 - [ ] `<target-dir>/Makefile` exists; `grep ZULIP_STREAM <target-dir>/Makefile` shows the new stream name (not `<<ZULIP_STREAM>>` and not `project-qec`).
-- [ ] `make -C <target-dir> zulip-config` prints three KEY=VALUE lines (`ZULIP_SITE=...`, `ZULIP_STREAM=...`, `ZULIP_WORKSPACE_DEFAULT=...`) and exits 0 even when `ZULIP_WORKSPACE` is unset.
-- [ ] `grep -r '<<TOPIC>>\|<<ZULIP_STREAM>>\|<<ZULIP_SITE>>\|<<WORKSPACE_LABEL>>\|<<GITHUB_REMOTE>>\|<<TOPIC_BLURB>>' <target-dir>` returns nothing (all placeholders substituted).
+- [ ] `make -C <target-dir> zulip-config` prints three KEY=VALUE lines (`ZULIP_SITE=...`, `ZULIP_STREAM=...`, `ZULIP_CONFIG_DIR_DEFAULT=...`) and exits 0 on a fresh clone.
+- [ ] `grep -r '<<TOPIC>>\|<<ZULIP_STREAM>>\|<<ZULIP_SITE>>\|<<CONFIG_LABEL>>\|<<WORKSPACE_LABEL>>\|<<GITHUB_REMOTE>>\|<<TOPIC_BLURB>>' <target-dir>` returns nothing (all placeholders substituted).
 - [ ] `<target-dir>/.claude/skills/onboard/SKILL.md` exists.
 - [ ] `<target-dir>/.knowledge/INDEX.md` exists with the topic name in its title line.
 - [ ] If `--git-init`: `<target-dir>/.git/` exists and `git -C <target-dir> log --oneline` shows the seed commit.

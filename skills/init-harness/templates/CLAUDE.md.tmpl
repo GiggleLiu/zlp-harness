@@ -18,11 +18,11 @@ Manual checklist if you'd rather DIY:
 
 1. **Claude Code installed** — the project-level `onboard` skill at `.claude/skills/onboard/` auto-loads when you open this directory with `claude`. The `zulip-reply` and `download-ref` skills come from the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, enabled automatically by `onboard` on first run.
 2. **`zlp` CLI** — `pip install zlp-cli`. Used by every `make zulip-*` target.
-3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. Save the file to:
+3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, click your avatar or initials, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. The file usually lands in `~/Downloads/zuliprc`; some browsers may call it `zuliprc.txt` or `zuliprc (1)`. Save the file to:
    ```
-   ~/zulip-workspaces/<<WORKSPACE_LABEL>>/zuliprc
+   ~/.config/zlp-harness/<<CONFIG_LABEL>>/zuliprc
    ```
-   `chmod 600` it (it's an API key). That path is the default `ZULIP_WORKSPACE`. To use a different location, set `export ZULIP_WORKSPACE=/your/path` in your shell rc.
+   Create the directory first if needed, then `chmod 600` the file. Do not paste the file contents into chat; it contains an API key.
 4. **`pymupdf4llm`** (only needed when *adding new references* via the `download-ref` skill) — see the skill's "Preflight" section. Skip this until you actually need it.
 
 Verify with `make zulip-whoami` — should print your account.
@@ -86,7 +86,7 @@ When `download-ref` finishes, **do not** auto-append to `ref.bib` unless this re
 
 Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into `.zulip/` (gitignored).
 
-The Makefile pins the workspace + stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`) from `~/zulip-workspaces/<<WORKSPACE_LABEL>>/`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
+The Makefile pins the stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`). On a fresh clone, the credential directory under `~/.config/zlp-harness/<<CONFIG_LABEL>>/` does not exist yet; `/onboard` creates it after the user downloads `zuliprc`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
 
 Caveats / gotchas:
 - Stream-wide pulls land in a hash-suffixed folder like `_all-<hash>/` (a `zlp` slugify quirk for the placeholder topic name). Topic-narrowed pulls produce the cleaner `<topic-slug>/` folder.

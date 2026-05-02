@@ -12,6 +12,6 @@ Open [Claude Code](https://claude.com/claude-code) in any directory and paste:
 clone https://github.com/<<GITHUB_REMOTE>> and invoke the onboard skill.
 ```
 
-The project-level `onboard` skill (in `.claude/skills/onboard/`) handles plugin install on first run — it edits your `~/.claude/settings.json` to enable the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, asks you to restart Claude Code, then on the second invocation delegates to the plugin's `zlp-onboard` skill which walks you through getting a Zulip API key for <<ZULIP_SITE>>, places `zuliprc`, and verifies the bridge with `make zulip-whoami`.
+The project-level `onboard` skill (in `.claude/skills/onboard/`) handles plugin install on first run — it edits your `~/.claude/settings.json` to enable the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, asks you to restart Claude Code, then on the second invocation delegates to the plugin's `zlp-onboard` skill. That flow shows where to download `zuliprc` from <<ZULIP_SITE>>, creates the local credential directory, places the file there, and verifies the bridge with `make zulip-whoami`.
 
 For everything else (commands, knowledge base layout, adding references, posting to Zulip), see [`CLAUDE.md`](CLAUDE.md).

@@ -2,23 +2,17 @@
 # on <<ZULIP_SITE>>. Archive lands under .zulip/ in the repo and is
 # gitignored locally so it never round-trips to GitHub.
 #
-# Per-machine override: set ZULIP_WORKSPACE to wherever your <<WORKSPACE_LABEL>>
-# workspace lives, e.g. in your shell rc:
-#   export ZULIP_WORKSPACE=$HOME/zulip-workspaces/<<WORKSPACE_LABEL>>
-# The workspace dir must contain a `zuliprc` (Zulip API key file).
+# On a fresh clone this directory does not exist. The onboard skill creates it
+# after the user downloads zuliprc from <<ZULIP_SITE>>. Override
+# ZULIP_CONFIG_DIR only if you keep that private API key file somewhere else.
 
-ZULIP_WORKSPACE         ?=
 ZULIP_STREAM            := <<ZULIP_STREAM>>
 ZULIP_SITE              := <<ZULIP_SITE>>
-ZULIP_WORKSPACE_DEFAULT := $(HOME)/zulip-workspaces/<<WORKSPACE_LABEL>>
+ZULIP_CONFIG_DIR_DEFAULT := $(HOME)/.config/zlp-harness/<<CONFIG_LABEL>>
+ZULIP_CONFIG_DIR         ?= $(ZULIP_CONFIG_DIR_DEFAULT)
 ZULIP_LOCAL             := $(CURDIR)/.zulip
 
-# Per-target guard — fires only when a target needs ZULIP_WORKSPACE.
-# Crucially, this lets `make zulip-config` run on a fresh clone before
-# the env var is set (the onboard skill calls it for site/path/stream).
-require-workspace = $(if $(strip $(ZULIP_WORKSPACE)),,$(error ZULIP_WORKSPACE is not set. Export it (e.g. `export ZULIP_WORKSPACE=$$HOME/zulip-workspaces/<<WORKSPACE_LABEL>>`) or pass it on the command line.))
-
-export ZULIP_CONFIG_FILE := $(ZULIP_WORKSPACE)/zuliprc
+export ZULIP_CONFIG_FILE := $(ZULIP_CONFIG_DIR)/zuliprc
 export ZLP_ARCHIVE_ROOT  := $(ZULIP_LOCAL)
 export ZLP_RUN_ROOT      := $(ZULIP_LOCAL)/.run
 
@@ -31,22 +25,22 @@ ZLP := zlp
 zulip-config:
 	@echo "ZULIP_SITE=$(ZULIP_SITE)"
 	@echo "ZULIP_STREAM=$(ZULIP_STREAM)"
-	@echo "ZULIP_WORKSPACE_DEFAULT=$(ZULIP_WORKSPACE_DEFAULT)"
+	@echo "ZULIP_CONFIG_DIR_DEFAULT=$(ZULIP_CONFIG_DIR_DEFAULT)"
 
 zulip-whoami:
-	$(require-workspace) $(ZLP) whoami
+	$(ZLP) whoami
 
 zulip-topics:
-	$(require-workspace) $(ZLP) topics --stream "$(ZULIP_STREAM)"
+	$(ZLP) topics --stream "$(ZULIP_STREAM)"
 
 zulip-messages:
-	$(require-workspace) $(ZLP) messages --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") --limit "$(or $(LIMIT),50)" --format "$(or $(FORMAT),md)"
+	$(ZLP) messages --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") --limit "$(or $(LIMIT),50)" --format "$(or $(FORMAT),md)"
 
 zulip-pull:
-	$(require-workspace) $(ZLP) pull --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") $(if $(IMPORT_HISTORY),--import-history)
+	$(ZLP) pull --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") $(if $(IMPORT_HISTORY),--import-history)
 
 zulip-send:
 	@test -n "$(TOPIC)" || { echo "TOPIC=... required"; exit 1; }
 	@test -n "$(MSG)$(MSG_FILE)" || { echo "MSG=... or MSG_FILE=... required"; exit 1; }
-	$(require-workspace) $(ZLP) send --stream "$(ZULIP_STREAM)" --topic "$(TOPIC)" \
+	$(ZLP) send --stream "$(ZULIP_STREAM)" --topic "$(TOPIC)" \
 	  $(if $(MSG),--msg "$(MSG)") $(if $(MSG_FILE),--msg-file "$(MSG_FILE)")

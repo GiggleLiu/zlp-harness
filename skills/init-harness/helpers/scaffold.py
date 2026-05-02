@@ -9,7 +9,7 @@ onboard SKILL.md):
   <<TOPIC>>            → --topic
   <<ZULIP_STREAM>>     → --zulip-stream
   <<ZULIP_SITE>>       → --zulip-site (default https://zulip.hkust-gz.edu.cn)
-  <<WORKSPACE_LABEL>>  → --workspace-label (default derived from --zulip-site host)
+  <<CONFIG_LABEL>>     → --config-label (default derived from --zulip-site host)
   <<GITHUB_REMOTE>>    → --github-remote (or "<org>/<repo>" placeholder if empty)
   <<TOPIC_BLURB>>      → --topic-blurb (or a TODO marker if empty)
 
@@ -49,8 +49,8 @@ RENDER_PLAN: list[tuple[str, str, bool]] = [
 SUBSKILLS: list[str] = ["onboard"]
 
 
-def derive_workspace_label(zulip_site: str) -> str:
-    """Take the leftmost host label as the workspace dir name.
+def derive_config_label(zulip_site: str) -> str:
+    """Take the leftmost host label as the credential directory name.
 
     Examples:
       https://zulip.hkust-gz.edu.cn          → hkust-gz
@@ -59,8 +59,8 @@ def derive_workspace_label(zulip_site: str) -> str:
     """
     host = urlparse(zulip_site).hostname or ""
     if not host:
-        raise SystemExit(f"error: cannot derive workspace label from {zulip_site!r}; "
-                         "pass --workspace-label explicitly.")
+        raise SystemExit(f"error: cannot derive config label from {zulip_site!r}; "
+                         "pass --config-label explicitly.")
     parts = host.split(".")
     # If first label is generic ("zulip", "chat"), use the second.
     if parts[0] in {"zulip", "chat"} and len(parts) > 1:
@@ -69,7 +69,7 @@ def derive_workspace_label(zulip_site: str) -> str:
 
 
 def substitute(text: str, *, topic: str, zulip_stream: str, zulip_site: str,
-               workspace_label: str, github_remote: str, topic_blurb: str) -> str:
+               config_label: str, github_remote: str, topic_blurb: str) -> str:
     blurb = topic_blurb.strip() or (
         f"<!-- TODO: one paragraph describing what the {topic} harness is "
         f"about. Replace this placeholder. -->"
@@ -79,7 +79,8 @@ def substitute(text: str, *, topic: str, zulip_stream: str, zulip_site: str,
             .replace("<<TOPIC>>", topic)
             .replace("<<ZULIP_STREAM>>", zulip_stream)
             .replace("<<ZULIP_SITE>>", zulip_site)
-            .replace("<<WORKSPACE_LABEL>>", workspace_label)
+            .replace("<<CONFIG_LABEL>>", config_label)
+            .replace("<<WORKSPACE_LABEL>>", config_label)
             .replace("<<GITHUB_REMOTE>>", remote)
             .replace("<<TOPIC_BLURB>>", blurb))
 
@@ -134,9 +135,11 @@ def main() -> int:
     ap.add_argument("--zulip-site", default="https://zulip.hkust-gz.edu.cn",
                     help="Zulip server URL (default: https://zulip.hkust-gz.edu.cn). "
                          "Examples: https://quantum-info.zulipchat.com, https://chat.zulip.org")
-    ap.add_argument("--workspace-label", default=None,
-                    help="slug for the local workspace directory ~/zulip-workspaces/<label>/. "
+    ap.add_argument("--config-label", default=None,
+                    help="slug for the local credential directory ~/.config/zlp-harness/<label>/. "
                          "Default: derived from --zulip-site host (e.g. 'hkust-gz', 'quantum-info').")
+    ap.add_argument("--workspace-label", default=None,
+                    help=argparse.SUPPRESS)
     ap.add_argument("--github-remote", default="",
                     help="<org>/<repo> for the README clone link (e.g. CodingThrust/qec.harness); "
                          "empty leaves a placeholder")
@@ -156,7 +159,7 @@ def main() -> int:
 
     zulip_stream = args.zulip_stream or f"project-{topic}"
     zulip_site = args.zulip_site.rstrip("/")
-    workspace_label = args.workspace_label or derive_workspace_label(zulip_site)
+    config_label = args.config_label or args.workspace_label or derive_config_label(zulip_site)
     target = Path(args.target_dir).expanduser().resolve()
 
     missing = preflight_templates()
@@ -178,7 +181,7 @@ def main() -> int:
         topic=topic,
         zulip_stream=zulip_stream,
         zulip_site=zulip_site,
-        workspace_label=workspace_label,
+        config_label=config_label,
         github_remote=args.github_remote.strip(),
         topic_blurb=args.topic_blurb,
     )
@@ -197,7 +200,7 @@ def main() -> int:
     print(f"  topic            = {topic}")
     print(f"  zulip-stream     = {zulip_stream}")
     print(f"  zulip-site       = {zulip_site}")
-    print(f"  workspace-label  = {workspace_label}")
+    print(f"  config-label     = {config_label}")
     print(f"  github-remote    = {args.github_remote or '(none — leave placeholder)'}")
     print("  files written:")
     for w in written:

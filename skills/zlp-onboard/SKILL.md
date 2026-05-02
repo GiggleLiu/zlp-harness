@@ -1,6 +1,6 @@
 ---
 name: zlp-onboard
-description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), sets up the workspace path, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill via `Skill("zlp-harness:zlp-onboard")`.
+description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), creates the local credential directory for `zuliprc`, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill via `Skill("zlp-harness:zlp-onboard")`.
 ---
 
 # zlp-onboard
@@ -8,7 +8,7 @@ description: Use when a new collaborator on any zlp-harness-based repo needs to 
 ## When to use
 
 - A collaborator on a harness repo (LLM, qec, attention-solids, etc.) just cloned and is running it for the first time.
-- `make zulip-whoami` fails with "zuliprc not found", "command not found: zlp", or the per-target `$(error) ZULIP_WORKSPACE is not set` guard.
+- `make zulip-whoami` fails with "zuliprc not found" or "command not found: zlp".
 - The harness's project-level `onboard` skill invokes this one after enabling the plugin.
 
 Do NOT use:
@@ -21,23 +21,27 @@ The skill is interactive — it detects state and asks for what's missing. No re
 
 ## Workflow
 
-### Step 0 — Read workspace config
+### Step 0 — Read harness config
 
 Every site/path/stream value below is read from the harness's Makefile via `make zulip-config`. Run this once at the start of the skill and use the resulting `CFG_*` env vars throughout.
 
 ```sh
-# Load workspace config from the harness's Makefile. Single-quote each value
+# Load harness config from the Makefile. Single-quote each value
 # so future stream names with whitespace or shell metacharacters parse safely.
 eval "$(make zulip-config | sed 's/^\([^=]*\)=\(.*\)$/CFG_\1=\x27\2\x27/')"
 
 # Should now have:
 #   $CFG_ZULIP_SITE              e.g. https://quantum-info.zulipchat.com
 #   $CFG_ZULIP_STREAM            e.g. LLM项目推进
-#   $CFG_ZULIP_WORKSPACE_DEFAULT e.g. /Users/<you>/zulip-workspaces/quantum-info
+#   $CFG_ZULIP_CONFIG_DIR_DEFAULT e.g. /Users/<you>/.config/zlp-harness/quantum-info
+
+# Older harnesses may print CFG_ZULIP_WORKSPACE_DEFAULT. Treat it as a private
+# credential directory for compatibility, but don't expose that name to users.
+CFG_ZULIP_CONFIG_DIR_DEFAULT="${CFG_ZULIP_CONFIG_DIR_DEFAULT:-${CFG_ZULIP_WORKSPACE_DEFAULT:-}}"
 
 echo "site:    $CFG_ZULIP_SITE"
 echo "stream:  $CFG_ZULIP_STREAM"
-echo "default workspace: $CFG_ZULIP_WORKSPACE_DEFAULT"
+echo "credential dir: $CFG_ZULIP_CONFIG_DIR_DEFAULT"
 ```
 
 If `make zulip-config` doesn't exist or returns nothing, the harness is on an older Makefile that predates the contract. Tell the user to run the harness's project-level `onboard` skill first (which should add `zulip-config`), or to update the Makefile by hand following the zlp-harness CLAUDE.md.
@@ -50,12 +54,12 @@ Before asking anything, check the four prerequisites in parallel:
 echo "=== zlp-cli installed? ==="
 command -v zlp && (zlp whoami 2>/dev/null | head -1 || echo "(cli found)") || echo "(missing)"
 
-echo "=== ZULIP_WORKSPACE env var set? ==="
-echo "ZULIP_WORKSPACE=${ZULIP_WORKSPACE:-(unset)}"
+echo "=== credential directory ==="
+CFG_DIR="${ZULIP_CONFIG_DIR:-$CFG_ZULIP_CONFIG_DIR_DEFAULT}"
+echo "$CFG_DIR"
 
 echo "=== zuliprc present? ==="
-WS="${ZULIP_WORKSPACE:-$CFG_ZULIP_WORKSPACE_DEFAULT}"
-ls -la "$WS/zuliprc" 2>&1 || echo "(missing at $WS/zuliprc)"
+ls -la "$CFG_DIR/zuliprc" 2>&1 || echo "(missing at $CFG_DIR/zuliprc)"
 
 echo "=== pymupdf4llm available to /usr/bin/env python3? ==="
 python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)" 2>&1 || echo "(missing — only needed for download-ref)"
@@ -64,10 +68,10 @@ python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)" 2>&1 || ec
 Report a short status table to the user before proposing actions, e.g.:
 
 ```
-zlp-cli            ✓ installed (1.4.0)
-ZULIP_WORKSPACE    ✗ unset
-zuliprc            ✗ missing at <default workspace>/zuliprc
-pymupdf4llm        ✗ missing (optional — only for adding new refs)
+zlp-cli              ✓ installed (1.4.0)
+credential directory ~/.config/zlp-harness/<label> (will be created)
+zuliprc              ✗ missing at <credential-dir>/zuliprc
+pymupdf4llm          ✗ missing (optional — only for adding new refs)
 
 I'll walk you through the missing bits. Sound good? (yes / skip-pymupdf / cancel)
 ```
@@ -93,9 +97,16 @@ Verify: `zlp --version` exits 0.
 This step is **manual on the user's side** — no script can do it. Walk them through, substituting `$CFG_ZULIP_SITE` for the harness's actual site:
 
 1. Open `$CFG_ZULIP_SITE` in a browser, log in.
-2. Click their avatar → **Personal settings** → **Account & privacy**.
-3. Find the **API key** row → click **Show/change your API key**.
-4. Click **Download zuliprc** — they get a `zuliprc` text file.
+2. Click their avatar or initials in the Zulip UI, then open **Personal settings**.
+3. Go to **Account & privacy**.
+4. Find **API key** and click **Show/change your API key**.
+5. Click **Download zuliprc**.
+
+Hint for the user: the downloaded file is usually named `zuliprc` and lands in `~/Downloads/`. Some browsers rename it to `zuliprc.txt` or `zuliprc (1)` if a file already exists. If they are not sure where it went, have them look in the browser's downloads list or run:
+
+```sh
+ls -lt ~/Downloads/zuliprc* 2>/dev/null | head
+```
 
 The file looks like:
 
@@ -108,33 +119,32 @@ site=<$CFG_ZULIP_SITE>
 
 **Do NOT** ask the user to paste the contents into chat. Keys are secrets.
 
-### Step 4 — Place `zuliprc` AND export `ZULIP_WORKSPACE`
+### Step 4 — Create the credential directory and place `zuliprc`
 
-The default workspace location is `$CFG_ZULIP_WORKSPACE_DEFAULT`. Create the dir, move the file, set permissions:
+There is no pre-existing local Zulip directory on a fresh collaborator machine. Create a private credential directory for this harness and put the downloaded `zuliprc` there. The harness Makefile points `zlp` at that file via `ZULIP_CONFIG_FILE`.
 
 ```sh
-mkdir -p "$CFG_ZULIP_WORKSPACE_DEFAULT"
-mv ~/Downloads/zuliprc "$CFG_ZULIP_WORKSPACE_DEFAULT/zuliprc"
-chmod 600 "$CFG_ZULIP_WORKSPACE_DEFAULT/zuliprc"   # contains an API key
+mkdir -p "$CFG_ZULIP_CONFIG_DIR_DEFAULT"
+mv ~/Downloads/zuliprc "$CFG_ZULIP_CONFIG_DIR_DEFAULT/zuliprc"
+chmod 600 "$CFG_ZULIP_CONFIG_DIR_DEFAULT/zuliprc"   # contains an API key
 ```
 
-Then **persist `ZULIP_WORKSPACE` in the user's shell rc** — most harness Makefiles enforce that the var is set:
+If the browser used a different filename, replace `~/Downloads/zuliprc` with the actual downloaded path. Do not open or print the file contents.
+
+If the user wants to keep the credentials somewhere else, then set `ZULIP_CONFIG_DIR` for that custom location:
 
 ```sh
-echo "export ZULIP_WORKSPACE=\"$CFG_ZULIP_WORKSPACE_DEFAULT\"" >> ~/.zshrc
-# or ~/.bashrc, depending on their shell
+echo 'export ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-If they prefer to pass it inline each time:
+or pass it inline for a single command:
 
 ```sh
-make zulip-whoami ZULIP_WORKSPACE="$CFG_ZULIP_WORKSPACE_DEFAULT"
+make zulip-whoami ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"
 ```
 
-Inline works but is annoying — the rc-file export is the right answer.
-
-If the user already had a `ZULIP_WORKSPACE` for a *different* harness (e.g. another Zulip workspace on a different site), they'll need either separate workspace dirs (`~/zulip-workspaces/hkust-gz/`, `~/zulip-workspaces/quantum-info/`, etc.) and switch `ZULIP_WORKSPACE` per-shell, or symlink the right one in. The Makefile is opinionated — one workspace per shell environment.
+Most collaborators should not set any override at all; the Makefile default is enough. The important point is that onboarding creates the directory and installs `zuliprc`; it must not assume anything already exists on disk.
 
 ### Step 5 — Verify the bridge
 
@@ -150,8 +160,6 @@ Expected output (their email and display name will differ):
 zlp whoami
 <$CFG_ZULIP_SITE> <their-email> <Display Name>
 ```
-
-If you see `*** ZULIP_WORKSPACE is not set ...`, the env var didn't propagate — they probably ran `export` in a different shell. Have them open a fresh terminal or `source ~/.zshrc`.
 
 Then a quick sanity check that the stream is reachable:
 
@@ -191,9 +199,9 @@ This pulls every message in `$CFG_ZULIP_STREAM` into `.zulip/` (gitignored). Aft
 ## Done checklist
 
 - [ ] `zlp` is on `$PATH`
-- [ ] `ZULIP_WORKSPACE` exported in the user's shell rc (not just the current terminal)
-- [ ] `zuliprc` exists at `$ZULIP_WORKSPACE/zuliprc` with mode 600
-- [ ] `make zulip-whoami` returns the user's email + display name without an env-var error
+- [ ] Credential directory was created by onboarding, or `ZULIP_CONFIG_DIR` intentionally points at a custom one
+- [ ] `zuliprc` exists at `<credential-dir>/zuliprc` with mode 600
+- [ ] `make zulip-whoami` returns the user's email + display name
 - [ ] `make zulip-topics` lists topics in `$CFG_ZULIP_STREAM` (empty list is fine for a brand-new stream)
 - [ ] `.zulip/` populated by `make zulip-pull IMPORT_HISTORY=1`
 - [ ] (Optional) `pymupdf4llm` importable by `python3`
@@ -206,11 +214,11 @@ After this, the user should:
 
 | Mistake | Fix |
 | --- | --- |
-| Hardcoding "hkust-gz" or any other workspace into the prompts you show the user | All site/path values come from `make zulip-config`. Re-read Step 0; do not paste site URLs from memory. |
+| Assuming a local Zulip directory already exists | Wrong model. A fresh collaborator has no such directory; create the credential directory during onboarding. |
+| Hardcoding "hkust-gz" or any other site label into the prompts you show the user | All site/path values come from `make zulip-config`. Re-read Step 0; do not paste site URLs from memory. |
 | Running this skill from outside a harness directory | `make zulip-config` only exists inside a harness root. cd into the repo first. |
-| `make` says `ZULIP_WORKSPACE is not set` even though they `export`ed it | They exported in a different shell. Append to `~/.zshrc` and `source` it (or open a fresh terminal). |
 | Pasting the zuliprc contents into chat | Don't. Keys are secrets. Have the user `mv` the downloaded file locally. |
 | Installing pymupdf4llm into Anaconda Python when `python3` resolves to `/opt/homebrew/bin/python3` | Run `which python3` first, then install for *that* interpreter. The renderer runs `python3` directly, not `conda run python`. |
-| Putting `zuliprc` at `~/zulip-workspaces/zuliprc` (no workspace-label subdir) | The Makefile expects a workspace *directory*, not a flat file. The path is `<workspace>/zuliprc`. |
+| Putting `zuliprc` directly under the repo | Keep secrets out of the checkout. Put it in the credential directory printed by `make zulip-config`. |
 | Forgetting `chmod 600 zuliprc` | The key is in plain text. World-readable mode bits leak it to anyone with shell access. |
 | Treating `make zulip-pull` `archived=0` as a failure | It just means no new messages since the last pull. Not an error. |

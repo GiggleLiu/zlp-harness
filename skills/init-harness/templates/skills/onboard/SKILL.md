@@ -5,12 +5,12 @@ description: Use when a new collaborator on the <<TOPIC>>.harness repo just clon
 
 # onboard — <<TOPIC>>.harness
 
-This is a thin two-phase skill. Its only jobs are (A) installing/enabling the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin in the user's global Claude Code settings, and (B) delegating to that plugin's `zlp-onboard` skill once it's loaded. All site-specific values (Zulip URL, default workspace path, stream name) come from this repo's `make zulip-config` — the plugin reads them, this skill does not.
+This is a thin two-phase skill. Its only jobs are (A) installing/enabling the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin in the user's global Claude Code settings, and (B) delegating to that plugin's `zlp-onboard` skill once it's loaded. All site-specific values (Zulip URL, default credential directory, stream name) come from this repo's `make zulip-config` — the plugin reads them, this skill does not.
 
 ## When to use
 
 - The user just cloned this repo and is running `/onboard` for the first time.
-- `make zulip-whoami` errors out (`ZULIP_WORKSPACE is not set`, `command not found: zlp`, missing `zuliprc`, etc.) and the user wants help.
+- `make zulip-whoami` errors out (`command not found: zlp`, missing `zuliprc`, etc.) and the user wants help.
 
 Do NOT use:
 - For an existing setup hitting a transient error — debug it first.
@@ -134,7 +134,7 @@ Do **not** attempt to invoke `Skill("zlp-harness:zlp-onboard")` in this same ses
    Skill("zlp-harness:zlp-onboard")
    ```
 
-   It reads `make zulip-config` from this repo's Makefile to learn the site URL, default workspace path, and stream name, then walks the user through `zlp-cli` install, `zuliprc` placement, `ZULIP_WORKSPACE` export, verification with `make zulip-whoami`, and the initial `make zulip-pull IMPORT_HISTORY=1`.
+   It reads `make zulip-config` from this repo's Makefile to learn the site URL, default credential directory, and stream name, then walks the user through `zlp-cli` install, creating the local credential directory, `zuliprc` placement, verification with `make zulip-whoami`, and the initial `make zulip-pull IMPORT_HISTORY=1`.
 
 3. After `zlp-harness:zlp-onboard` finishes, you're done — no extra steps. The user can immediately use `/zulip-reply` and `/download-ref` (also from the plugin).
 
@@ -152,5 +152,5 @@ Do **not** attempt to invoke `Skill("zlp-harness:zlp-onboard")` in this same ses
 | Trying to invoke `Skill("zlp-harness:zlp-onboard")` in Phase A (same session as the install) | Plugins only load at session start. Phase A always ends with a restart prompt; Phase B is a separate run. |
 | Overwriting a syntactically-invalid `~/.claude/settings.json` | The Step 0 check returns `PARSE_ERROR` — abort and ask the user to fix the JSON manually. Never write into a corrupt file. |
 | Using a flat dict assignment that clobbers the user's existing `enabledPlugins` block | Use `data.setdefault("enabledPlugins", {})` then assign the single key. The Python snippet above does this correctly; don't simplify it into `data["enabledPlugins"] = {...}`. |
-| Hardcoding `zulip.hkust-gz.edu.cn` or any other site URL into the prompts shown to the user | This skill is workspace-agnostic. All site-specific values come from `make zulip-config`, which the plugin's `zlp-onboard` reads — not this skill. |
+| Hardcoding `zulip.hkust-gz.edu.cn` or any other site URL into the prompts shown to the user | This skill is site-agnostic. All site-specific values come from `make zulip-config`, which the plugin's `zlp-onboard` reads — not this skill. |
 | Running `/onboard` from outside the harness's repo root | The cwd matters once we delegate — `make zulip-config` only resolves inside this repo. |
