@@ -7,15 +7,17 @@ description: Use when the user wants to check the project's Zulip stream and (us
 
 ## Overview
 
-Mirror the project's Zulip stream into `.zulip/`, scan the newest co-author messages, ground them in the project library, and brainstorm a reply with the user.
+Mirror the project's Zulip stream into the workspace archive, scan the newest co-author messages, ground them in the project library, and brainstorm a reply with the user.
 
-**Project-specific values — stream name, archive layout, library locations, search recipes — live in `CLAUDE.md` (under "Zulip channel mirror"). The integration interface is a set of `make zulip-*` targets that each project provides; this skill calls them by name and lets the project's Makefile decide what runs underneath. Do not bypass the targets to call the underlying tool directly.**
+**Project-specific values — stream name, archive layout, library locations, search recipes — live in `CLAUDE.md` (under "Zulip channel"). The integration interface is a set of `make zulip-*` targets that each project provides; this skill calls them by name and lets the project's Makefile decide what runs underneath. Do not bypass the targets to call the underlying tool directly.**
+
+The archive lives in the global workspace directory (`~/.local/share/zlp-harness/<workspace>/`) — read the path from `make zulip-config` (`ZULIP_WORKSPACE_DIR_DEFAULT`). Drafts staged for `MSG_FILE=` go under `ZULIP_DRAFTS_DIR` from the same target.
 
 ## When to use
 
 - User asks to read recent Zulip discussion or "what's new on chat".
 - User wants to draft / review a reply to a co-author message.
-- A `.zulip/` mirror needs to be created or refreshed.
+- The workspace archive needs to be created or refreshed.
 
 Do NOT use when the user just wants to send a one-off message — `make zulip-send` is enough.
 
@@ -24,7 +26,7 @@ Do NOT use when the user just wants to send a one-off message — `make zulip-se
 ```dot
 digraph zulip_flow {
     "User invokes skill" [shape=doublecircle];
-    ".zulip/ has any *.md?" [shape=diamond];
+    "Workspace archive has any *.md?" [shape=diamond];
     "make zulip-pull IMPORT_HISTORY=1" [shape=box];
     "make zulip-pull" [shape=box];
     "List ALL new messages (sender labelled, self kept for context)" [shape=box];
@@ -36,9 +38,9 @@ digraph zulip_flow {
     "More messages?" [shape=diamond];
     "Done" [shape=doublecircle];
 
-    "User invokes skill" -> ".zulip/ has any *.md?";
-    ".zulip/ has any *.md?" -> "make zulip-pull IMPORT_HISTORY=1" [label="no"];
-    ".zulip/ has any *.md?" -> "make zulip-pull" [label="yes"];
+    "User invokes skill" -> "Workspace archive has any *.md?";
+    "Workspace archive has any *.md?" -> "make zulip-pull IMPORT_HISTORY=1" [label="no"];
+    "Workspace archive has any *.md?" -> "make zulip-pull" [label="yes"];
     "make zulip-pull IMPORT_HISTORY=1" -> "List ALL new messages (sender labelled, self kept for context)";
     "make zulip-pull" -> "List ALL new messages (sender labelled, self kept for context)";
     "List ALL new messages (sender labelled, self kept for context)" -> "Read bodies + project library (CLAUDE.md)";
@@ -55,10 +57,12 @@ digraph zulip_flow {
 
 ### Step 1 — Pull
 
-Detect initialization:
+Resolve the workspace path once, then detect initialization:
 
 ```sh
-find .zulip -name '*.md' -print -quit 2>/dev/null
+eval "$(make zulip-config | sed 's/^\([^=]*\)=\(.*\)$/CFG_\1=\x27\2\x27/')"
+WS_DIR="${ZULIP_WORKSPACE_DIR:-$CFG_ZULIP_WORKSPACE_DIR_DEFAULT}"
+find "$WS_DIR" -path '*/.*' -prune -o -name '*.md' -print -quit 2>/dev/null
 ```
 
 - **Empty → not initialized.** Run `make zulip-pull IMPORT_HISTORY=1` (full history; attachments land in sibling `_files/` dirs).
@@ -166,7 +170,7 @@ Send via the Makefile:
 make zulip-send TOPIC="<topic>" MSG_FILE=<path-to-draft.md>
 ```
 
-Use `MSG_FILE` (a temp file under `.zulip/.drafts/` is fine — gitignored with `.zulip`) for any reply longer than one line; `MSG=` requires shell-escaping.
+Use `MSG_FILE` (a temp file under `$CFG_ZULIP_DRAFTS_DIR` — workspace's `.drafts/` subdir, never inside the repo) for any reply longer than one line; `MSG=` requires shell-escaping.
 
 **Never add a signature.** No name tag, no "(drafted with AI)", nothing. The account name is the only attribution. If the user explicitly asks to flag a message as AI-drafted, ask them to write the wording — don't invent one.
 
@@ -197,7 +201,7 @@ The project provides these `make` targets as the integration interface (see `CLA
 | Verify a topic before send | `make zulip-topics \| grep -F "<topic>"` |
 | Print recent messages without archiving | `make zulip-messages LIMIT=20` |
 | Send | `make zulip-send TOPIC="…" MSG_FILE=…` |
-| Detect initialization | `find .zulip -name '*.md' -print -quit` |
+| Detect initialization | `find "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT" -path '*/.*' -prune -o -name '*.md' -print -quit` |
 | Project library search recipes | See `CLAUDE.md` |
 
 ## Common mistakes

@@ -15,10 +15,12 @@ Use exact dates in summaries. Default "last week" to the last 7 calendar days en
 
 ### Step 1 - Sync Zulip
 
-Read `CLAUDE.md` first for project conventions. Then update the local archive through the Makefile, never by calling `zlp` directly:
+Read `CLAUDE.md` first for project conventions. Resolve the workspace path from `make zulip-config`, then update the archive through the Makefile, never by calling `zlp` directly:
 
 ```sh
-find .zulip -name '*.md' -print -quit 2>/dev/null
+eval "$(make zulip-config | sed 's/^\([^=]*\)=\(.*\)$/CFG_\1=\x27\2\x27/')"
+WS_DIR="${ZULIP_WORKSPACE_DIR:-$CFG_ZULIP_WORKSPACE_DIR_DEFAULT}"
+find "$WS_DIR" -path '*/.*' -prune -o -name '*.md' -print -quit 2>/dev/null
 # Empty result: first run
 make zulip-pull IMPORT_HISTORY=1
 # Otherwise
@@ -29,7 +31,7 @@ If the pull fails because credentials are missing, stop and invoke `zlp-onboard`
 
 ### Step 2 - Build the week view
 
-From `.zulip/`, read messages whose YAML `timestamp` falls in the selected date window. Parse at least:
+From `$WS_DIR`, read messages whose YAML `timestamp` falls in the selected date window. Parse at least:
 
 - `sender_full_name`
 - `timestamp`
@@ -135,7 +137,7 @@ Use a stable topic unless the project says otherwise: `weekly advisor`. Verify o
 make zulip-topics | grep -F "weekly advisor"
 ```
 
-Draft in `.zulip/.drafts/weekly-advisor-YYYY-MM-DD.md`. The posted message should read like a natural advisor note: warm, specific, and constructive. Do not make it look like a compliance report. Use light structure only when it improves readability; prefer short paragraphs and a few bullets over many headings.
+Draft in `$CFG_ZULIP_DRAFTS_DIR/weekly-advisor-YYYY-MM-DD.md` (the workspace's `.drafts/` subdir, never inside the repo). The posted message should read like a natural advisor note: warm, specific, and constructive. Do not make it look like a compliance report. Use light structure only when it improves readability; prefer short paragraphs and a few bullets over many headings.
 
 ```md
 Hi all, I looked through the discussion from YYYY-MM-DD to YYYY-MM-DD.
@@ -177,11 +179,11 @@ make zulip-topics | grep -F "weekly advisor"
 If the topic does not exist, ask whether to create it or use another topic. Then send:
 
 ```sh
-make zulip-send TOPIC="weekly advisor" MSG_FILE=".zulip/.drafts/weekly-advisor-YYYY-MM-DD.md"
+make zulip-send TOPIC="weekly advisor" MSG_FILE="$CFG_ZULIP_DRAFTS_DIR/weekly-advisor-YYYY-MM-DD.md"
 make zulip-pull
 ```
 
-After sending, confirm that the post was mirrored back into `.zulip/`; retry `make zulip-pull` once if needed.
+After sending, confirm that the post was mirrored back into the workspace archive; retry `make zulip-pull` once if needed.
 
 ## Done Checklist
 
@@ -197,7 +199,7 @@ After sending, confirm that the post was mirrored back into `.zulip/`; retry `ma
 - [ ] Latest external updates were checked with browsing.
 - [ ] 1-4 reliable-source updates included, each with relation to the project.
 - [ ] Draft shown to the user before posting.
-- [ ] Sent message mirrored back into `.zulip/`.
+- [ ] Sent message mirrored back into the workspace archive.
 
 ## Common Mistakes
 

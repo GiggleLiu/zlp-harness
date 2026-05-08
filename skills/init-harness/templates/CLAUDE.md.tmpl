@@ -20,12 +20,12 @@ Manual checklist if you'd rather DIY:
 2. **`zlp` CLI** — `pip install zlp-cli`. Used by every `make zulip-*` target.
 3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, click your avatar or initials, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. The file usually lands in `~/Downloads/zuliprc`; some browsers may call it `zuliprc.txt` or `zuliprc (1)`. Save the file to:
    ```
-   ~/.config/zlp-harness/<<CONFIG_LABEL>>/zuliprc
+   ~/.local/share/zlp-harness/<<WORKSPACE>>/zuliprc
    ```
    Create the directory first if needed, then `chmod 600` the file. Do not paste the file contents into chat; it contains an API key.
 4. **`pymupdf4llm`** (only needed when *adding new references* via the `download-ref` skill) — see the skill's "Preflight" section. Skip this until you actually need it.
 
-Verify with `make zulip-whoami` — should print your account. Then run `make zulip-pull IMPORT_HISTORY=1` once to sync the stream into `.zulip/`. After messages are synced, add the project’s key arXiv/DOI references with the `download-ref` skill so future work is grounded in the local `.knowledge/` library.
+Verify with `make zulip-whoami` — should print your account. Then run `make zulip-pull IMPORT_HISTORY=1` once to sync the stream into the workspace directory (`~/.local/share/zlp-harness/<<WORKSPACE>>/`). After messages are synced, add the project’s key arXiv/DOI references with the `download-ref` skill so future work is grounded in the local `.knowledge/` library.
 
 ## Common commands
 
@@ -40,14 +40,14 @@ make zulip-topics                       # list topics
 make zulip-messages TOPIC=<topic-name> LIMIT=5
 make zulip-messages TOPIC=<topic-name> LIMIT=20 FORMAT=md
 
-# Mirror messages into .zulip/ (gitignored)
+# Mirror messages into the workspace dir (~/.local/share/zlp-harness/<<WORKSPACE>>/)
 make zulip-pull                         # incremental, all topics
 make zulip-pull TOPIC=<topic-name>      # narrow to one topic
 make zulip-pull IMPORT_HISTORY=1        # first-time backfill / reset cursor
 
 # Post a message (creates the topic if it doesn't exist — verify spelling first)
 make zulip-send TOPIC=<topic-name> MSG="hello"
-make zulip-send TOPIC=<topic-name> MSG_FILE=.zulip/.drafts/msg.md
+make zulip-send TOPIC=<topic-name> MSG_FILE="$(make -s zulip-config | sed -n 's/^ZULIP_DRAFTS_DIR=//p')/msg.md"
 ```
 
 Adding references to `.knowledge/` is done via the `download-ref` skill, not `make` — see "Adding a new reference" below.
@@ -98,16 +98,17 @@ Invariants the skill assumes:
 
 When `download-ref` finishes, **do not** auto-append to `ref.bib` unless this repo has a LaTeX draft (`main.tex`) — the append step in the skill is dormant until then.
 
-## Zulip channel (`.zulip/`) — discussion archive
+## Zulip channel — discussion archive
 
-Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into `.zulip/` (gitignored).
+Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into the global workspace directory `~/.local/share/zlp-harness/<<WORKSPACE>>/` (one folder per Zulip workspace, shared across every harness on the same workspace).
 
-The Makefile pins the stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`). On a fresh clone, the credential directory under `~/.config/zlp-harness/<<CONFIG_LABEL>>/` does not exist yet; `/onboard` creates it after the user downloads `zuliprc`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
+The Makefile pins the stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`) — all of them point inside the workspace dir. On a fresh clone the workspace dir does not exist yet; `/onboard` creates it after the user downloads `zuliprc`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
 
 Caveats / gotchas:
 - Stream-wide pulls land in a hash-suffixed folder like `_all-<hash>/` (a `zlp` slugify quirk for the placeholder topic name). Topic-narrowed pulls produce the cleaner `<topic-slug>/` folder.
 - `make zulip-pull` mirrors the **user's own outgoing messages** as `.md` files too. Filter by `make zulip-whoami` display name when summarizing co-author traffic.
 - `make zulip-send` silently creates a new topic if `TOPIC=` doesn't match an existing one (case- and whitespace-sensitive). Verify with `make zulip-topics | grep -F "<topic>"` before sending.
+- Drafts being staged for `MSG_FILE=` should be written under `$(ZULIP_DRAFTS_DIR)` (the workspace's `.drafts/` subdir), never inside the repo. Use `make zulip-config` to read the path.
 - Never add an AI-attribution signature to outgoing Zulip messages. The account name is the only attribution.
 
 ## Doing common tasks
@@ -116,7 +117,7 @@ Caveats / gotchas:
 
 **"Add this arXiv ref"** → Use the `download-ref` skill. Manifest accepts both `arxiv` and `doi` lists; the skill is idempotent.
 
-**"Post links to Zulip"** → Draft to `.zulip/.drafts/<file>.md`, then `make zulip-send TOPIC="<topic>" MSG_FILE=.zulip/.drafts/<file>.md`. Match the existing message style in the target topic (concise, numbered, `[Title](URL)`); check with `make zulip-messages TOPIC="<topic>" LIMIT=5` first.
+**"Post links to Zulip"** → Draft to `$(ZULIP_DRAFTS_DIR)/<file>.md` (workspace dir; read it via `make zulip-config`), then `make zulip-send TOPIC="<topic>" MSG_FILE="$(ZULIP_DRAFTS_DIR)/<file>.md"`. Match the existing message style in the target topic (concise, numbered, `[Title](URL)`); check with `make zulip-messages TOPIC="<topic>" LIMIT=5` first.
 
 **"Check Zulip" / "what did X say" / "draft a reply"** → invoke the **`zulip-reply` skill** (in `.claude/skills/zulip-reply/`). It pulls new messages, grounds each in `.knowledge/`, walks them one-by-one with quoted-body context, and asks before sending.
 

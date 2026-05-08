@@ -1,6 +1,6 @@
 ---
 name: zlp-onboard
-description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), creates the local credential directory for `zuliprc`, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill via `Skill("zlp-harness:zlp-onboard")`.
+description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), creates the global workspace directory at `~/.local/share/zlp-harness/<workspace>/` and places `zuliprc` there, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill via `Skill("zlp-harness:zlp-onboard")`.
 ---
 
 # zlp-onboard
@@ -31,20 +31,19 @@ Every site/path/stream value below is read from the harness's Makefile via `make
 eval "$(make zulip-config | sed 's/^\([^=]*\)=\(.*\)$/CFG_\1=\x27\2\x27/')"
 
 # Should now have:
-#   $CFG_ZULIP_SITE              e.g. https://quantum-info.zulipchat.com
-#   $CFG_ZULIP_STREAM            e.g. LLM项目推进
-#   $CFG_ZULIP_CONFIG_DIR_DEFAULT e.g. /Users/<you>/.config/zlp-harness/quantum-info
+#   $CFG_ZULIP_SITE                  e.g. https://quantum-info.zulipchat.com
+#   $CFG_ZULIP_STREAM                e.g. LLM项目推进
+#   $CFG_ZULIP_WORKSPACE             e.g. quantum-info
+#   $CFG_ZULIP_WORKSPACE_DIR_DEFAULT e.g. /Users/<you>/.local/share/zlp-harness/quantum-info
+#   $CFG_ZULIP_DRAFTS_DIR            e.g. /Users/<you>/.local/share/zlp-harness/quantum-info/.drafts
 
-# Older harnesses may print CFG_ZULIP_WORKSPACE_DEFAULT. Treat it as a private
-# credential directory for compatibility, but don't expose that name to users.
-CFG_ZULIP_CONFIG_DIR_DEFAULT="${CFG_ZULIP_CONFIG_DIR_DEFAULT:-${CFG_ZULIP_WORKSPACE_DEFAULT:-}}"
-
-echo "site:    $CFG_ZULIP_SITE"
-echo "stream:  $CFG_ZULIP_STREAM"
-echo "credential dir: $CFG_ZULIP_CONFIG_DIR_DEFAULT"
+echo "site:          $CFG_ZULIP_SITE"
+echo "stream:        $CFG_ZULIP_STREAM"
+echo "workspace:     $CFG_ZULIP_WORKSPACE"
+echo "workspace dir: $CFG_ZULIP_WORKSPACE_DIR_DEFAULT"
 ```
 
-If `make zulip-config` doesn't exist or returns nothing, the harness is on an older Makefile that predates the contract. Tell the user to run the harness's project-level `onboard` skill first (which should add `zulip-config`), or to update the Makefile by hand following the zlp-harness CLAUDE.md.
+If `make zulip-config` doesn't exist or returns nothing, the harness is on an older Makefile that predates the contract. Tell the user to update the Makefile by hand following the zlp-harness CLAUDE.md.
 
 ### Step 1 — Detect what's already done
 
@@ -54,12 +53,12 @@ Before asking anything, check the four prerequisites in parallel:
 echo "=== zlp-cli installed? ==="
 command -v zlp && (zlp whoami 2>/dev/null | head -1 || echo "(cli found)") || echo "(missing)"
 
-echo "=== credential directory ==="
-CFG_DIR="${ZULIP_CONFIG_DIR:-$CFG_ZULIP_CONFIG_DIR_DEFAULT}"
-echo "$CFG_DIR"
+echo "=== workspace directory ==="
+WS_DIR="${ZULIP_WORKSPACE_DIR:-$CFG_ZULIP_WORKSPACE_DIR_DEFAULT}"
+echo "$WS_DIR"
 
 echo "=== zuliprc present? ==="
-ls -la "$CFG_DIR/zuliprc" 2>&1 || echo "(missing at $CFG_DIR/zuliprc)"
+ls -la "$WS_DIR/zuliprc" 2>&1 || echo "(missing at $WS_DIR/zuliprc)"
 
 echo "=== pymupdf4llm available to /usr/bin/env python3? ==="
 python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)" 2>&1 || echo "(missing — only needed for download-ref)"
@@ -69,8 +68,8 @@ Report a short status table to the user before proposing actions, e.g.:
 
 ```
 zlp-cli              ✓ installed (1.4.0)
-credential directory ~/.config/zlp-harness/<label> (will be created)
-zuliprc              ✗ missing at <credential-dir>/zuliprc
+workspace directory  ~/.local/share/zlp-harness/<workspace> (will be created)
+zuliprc              ✗ missing at <workspace-dir>/zuliprc
 pymupdf4llm          ✗ missing (optional — only for adding new refs)
 
 I'll walk you through the missing bits. Sound good? (yes / skip-pymupdf / cancel)
@@ -119,29 +118,29 @@ site=<$CFG_ZULIP_SITE>
 
 **Do NOT** ask the user to paste the contents into chat. Keys are secrets.
 
-### Step 4 — Create the credential directory and place `zuliprc`
+### Step 4 — Create the workspace directory and place `zuliprc`
 
-There is no pre-existing local Zulip directory on a fresh collaborator machine. Create a private credential directory for this harness and put the downloaded `zuliprc` there. The harness Makefile points `zlp` at that file via `ZULIP_CONFIG_FILE`.
+There is no pre-existing workspace directory on a fresh collaborator machine. Create the global workspace dir for this Zulip server and put the downloaded `zuliprc` there. The harness Makefile points `zlp` at that file via `ZULIP_CONFIG_FILE` and at the same dir for the message archive via `ZLP_ARCHIVE_ROOT`.
 
 ```sh
-mkdir -p "$CFG_ZULIP_CONFIG_DIR_DEFAULT"
-mv ~/Downloads/zuliprc "$CFG_ZULIP_CONFIG_DIR_DEFAULT/zuliprc"
-chmod 600 "$CFG_ZULIP_CONFIG_DIR_DEFAULT/zuliprc"   # contains an API key
+mkdir -p "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT"
+mv ~/Downloads/zuliprc "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/zuliprc"
+chmod 600 "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/zuliprc"   # contains an API key
 ```
 
 If the browser used a different filename, replace `~/Downloads/zuliprc` with the actual downloaded path. Do not open or print the file contents.
 
-If the user wants to keep the credentials somewhere else, then set `ZULIP_CONFIG_DIR` for that custom location:
+If the user wants to keep the workspace somewhere else, set `ZULIP_WORKSPACE_DIR` for that custom location:
 
 ```sh
 # Add this export to the user's shell startup file, then open a fresh shell:
-export ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"
+export ZULIP_WORKSPACE_DIR="/path/to/their/zulip-workspace"
 ```
 
 or pass it inline for a single command:
 
 ```sh
-make zulip-whoami ZULIP_CONFIG_DIR="/path/to/their/zulip-credentials"
+make zulip-whoami ZULIP_WORKSPACE_DIR="/path/to/their/zulip-workspace"
 ```
 
 Most collaborators should not set any override at all; the Makefile default is enough. The important point is that onboarding creates the directory and installs `zuliprc`; it must not assume anything already exists on disk.
@@ -188,14 +187,14 @@ python3 -c "import pymupdf4llm; print(pymupdf4llm.__version__)"
 
 The `download-ref` skill's Preflight section has the same check; this step just front-loads it.
 
-### Step 7 — Sync the local Zulip archive
+### Step 7 — Sync the workspace archive
 
 ```sh
 make zulip-pull IMPORT_HISTORY=1
-find .zulip -name '*.md' -print -quit 2>/dev/null
+find "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT" -path '*/.*' -prune -o -name '*.md' -print -quit 2>/dev/null
 ```
 
-This pulls the available history in `$CFG_ZULIP_STREAM` into `.zulip/` (gitignored). Do not treat onboarding as complete until `make zulip-pull IMPORT_HISTORY=1` exits successfully.
+This pulls the available history in `$CFG_ZULIP_STREAM` into the workspace dir (`$CFG_ZULIP_WORKSPACE_DIR_DEFAULT`). Do not treat onboarding as complete until `make zulip-pull IMPORT_HISTORY=1` exits successfully.
 
 If `find` prints a path, the archive has local message files. If it prints nothing, check the command output: a brand-new or empty stream can sync successfully with no message files. In that case, tell the user the stream is reachable but currently has no archived messages. After this first sync, daily catch-up is just `make zulip-pull`.
 
@@ -218,13 +217,13 @@ First inspect local context:
 ```sh
 rg -n "Repository purpose|Reliable update sources|Knowledge base|Weekly advisor|Zulip channel" CLAUDE.md
 test -f .knowledge/INDEX.md && sed -n '1,120p' .knowledge/INDEX.md
-find .zulip -name '*.md' -print -quit 2>/dev/null
+find "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT" -path '*/.*' -prune -o -name '*.md' -print -quit 2>/dev/null
 ```
 
 Then propose a compact pick-list. Include:
 
 - **Source types**: `arXiv`, `web search`, and `other reliable sources`.
-- **Keywords**: 6-10 project-specific phrases from `CLAUDE.md`, `.knowledge/INDEX.md`, and recent Zulip discussions.
+- **Keywords**: 6-10 project-specific phrases from `CLAUDE.md`, `.knowledge/INDEX.md`, and recent Zulip discussions in the workspace archive.
 - **Big names to watch**: 3-8 prominent authors, labs, venues, benchmarks, datasets, or methods. Prefer names already evidenced in `.knowledge/` or Zulip. If evidence is thin, label them as provisional suggestions and ask the user to correct them.
 - **Other reliable sources**: official conference/workshop pages, benchmark/dataset leaderboards, standards/docs, project release notes, publisher pages, or lab pages relevant to this project.
 
@@ -276,11 +275,11 @@ Do not invent authority. If the user does not know yet, write a short provisiona
 ## Done checklist
 
 - [ ] `zlp` is on `$PATH`
-- [ ] Credential directory was created by onboarding, or `ZULIP_CONFIG_DIR` intentionally points at a custom one
-- [ ] `zuliprc` exists at `<credential-dir>/zuliprc` with mode 600
+- [ ] Workspace directory was created by onboarding, or `ZULIP_WORKSPACE_DIR` intentionally points at a custom one
+- [ ] `zuliprc` exists at `<workspace-dir>/zuliprc` with mode 600
 - [ ] `make zulip-whoami` returns the user's email + display name
 - [ ] `make zulip-topics` lists topics in `$CFG_ZULIP_STREAM` (empty list is fine for a brand-new stream)
-- [ ] `make zulip-pull IMPORT_HISTORY=1` completed; `.zulip/` has messages, or the user was told the stream currently has none
+- [ ] `make zulip-pull IMPORT_HISTORY=1` completed; the workspace dir has messages, or the user was told the stream currently has none
 - [ ] User was advised to download key project references with `download-ref`
 - [ ] `CLAUDE.md` has a `Reliable update sources (zlp-advisor)` section, or the user intentionally deferred it
 - [ ] (Optional) `pymupdf4llm` importable by `python3`
@@ -293,11 +292,12 @@ After this, the user should:
 
 | Mistake | Fix |
 | --- | --- |
-| Assuming a local Zulip directory already exists | Wrong model. A fresh collaborator has no such directory; create the credential directory during onboarding. |
+| Assuming a workspace directory already exists | Wrong model. A fresh collaborator has no such directory; create the workspace directory during onboarding. |
 | Hardcoding "hkust-gz" or any other site label into the prompts you show the user | All site/path values come from `make zulip-config`. Re-read Step 0; do not paste site URLs from memory. |
 | Running this skill from outside a harness directory | `make zulip-config` only exists inside a harness root. cd into the repo first. |
 | Pasting the zuliprc contents into chat | Don't. Keys are secrets. Have the user `mv` the downloaded file locally. |
 | Installing pymupdf4llm into a different Python environment than `python3` uses | Run `which python3` first, then install for *that* interpreter. The renderer runs `python3` directly. |
-| Putting `zuliprc` directly under the repo | Keep secrets out of the checkout. Put it in the credential directory printed by `make zulip-config`. |
+| Putting `zuliprc` directly under the repo | Keep secrets out of the checkout. Put it in the workspace directory printed by `make zulip-config`. |
 | Forgetting `chmod 600 zuliprc` | The key is in plain text. World-readable mode bits leak it to anyone with shell access. |
 | Treating `make zulip-pull` `archived=0` as a failure | It just means no new messages since the last pull. Not an error. |
+| Looking for messages under `<repo>/.zulip/` | That layout is gone. Messages live at `$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/<channel-slug>/...`. |
