@@ -134,7 +134,7 @@ Do **not** attempt to invoke `Skill("zlp-harness:zlp-onboard")` in this same ses
    Skill("zlp-harness:zlp-onboard")
    ```
 
-   It reads `make zulip-config` from this repo's Makefile to learn the site URL, default credential directory, and stream name, then walks the user through `zlp-cli` install, creating the local credential directory, `zuliprc` placement, verification with `make zulip-whoami`, the initial `make zulip-pull IMPORT_HISTORY=1` sync, a recommendation to add key arXiv/DOI references with `download-ref`, and reliable-source configuration for `zlp-advisor`.
+   It reads `make zulip-config` from this repo's Makefile to learn the site URL, the default workspace directory, and the stream name, then walks the user through `zlp-cli` install, creating the global workspace directory at `~/.local/share/zlp-harness/<workspace>/`, `zuliprc` placement, verification with `make zulip-whoami`, the initial `make zulip-pull IMPORT_HISTORY=1` sync, a recommendation to add key arXiv/DOI references with `download-ref`, and reliable-source configuration for `zlp-advisor`.
 
 3. After `zlp-harness:zlp-onboard` finishes, confirm that message sync completed or that the stream currently has no messages. Then point the user at `/download-ref` for the project’s key references and `/zlp-advisor` for weekly advisor/TODO reviews.
 
@@ -143,7 +143,7 @@ Do **not** attempt to invoke `Skill("zlp-harness:zlp-onboard")` in this same ses
 - [ ] `~/.claude/settings.json` contains both `extraKnownMarketplaces["zlp-harness"]` and `enabledPlugins["zlp-harness@zlp-harness"]: true`.
 - [ ] In a fresh Claude Code session, the available-skills system reminder lists `zlp-harness:zlp-onboard`, `zlp-harness:zulip-reply`, `zlp-harness:download-ref`, `zlp-harness:zlp-advisor`.
 - [ ] `make zulip-whoami` from the repo root prints the user's account.
-- [ ] `make zulip-pull IMPORT_HISTORY=1` completed; `.zulip/` has messages, or the user was told the stream currently has none.
+- [ ] `make zulip-pull IMPORT_HISTORY=1` completed; the workspace dir has messages, or the user was told the stream currently has none.
 - [ ] User was advised to add key project references with `download-ref`.
 - [ ] `CLAUDE.md` has reliable update sources for `zlp-advisor`, or the user intentionally deferred them.
 

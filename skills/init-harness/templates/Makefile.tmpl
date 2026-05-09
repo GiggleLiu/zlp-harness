@@ -1,31 +1,37 @@
 # Zulip bridge for the <<TOPIC>>.harness — connects to <<ZULIP_STREAM>>
-# on <<ZULIP_SITE>>. Archive lands under .zulip/ in the repo and is
-# gitignored locally so it never round-trips to GitHub.
+# on <<ZULIP_SITE>>. All personal state (credentials, archived messages,
+# cursor state, drafts) lives under one global workspace directory:
+#   $(HOME)/.local/share/zlp-harness/<<WORKSPACE>>/
+# The repo working tree no longer holds any Zulip data.
 #
-# On a fresh clone this directory does not exist. The onboard skill creates it
-# after the user downloads zuliprc from <<ZULIP_SITE>>. Override
-# ZULIP_CONFIG_DIR only if you keep that private API key file somewhere else.
+# On a fresh clone the workspace directory does not exist. The onboard
+# skill creates it after the user downloads zuliprc from <<ZULIP_SITE>>.
+# Override ZULIP_WORKSPACE_DIR only if you keep that workspace somewhere
+# else.
 
-ZULIP_STREAM            := <<ZULIP_STREAM>>
-ZULIP_SITE              := <<ZULIP_SITE>>
-ZULIP_CONFIG_DIR_DEFAULT := $(HOME)/.config/zlp-harness/<<CONFIG_LABEL>>
-ZULIP_CONFIG_DIR         ?= $(ZULIP_CONFIG_DIR_DEFAULT)
-ZULIP_LOCAL             := $(CURDIR)/.zulip
+ZULIP_STREAM              := <<ZULIP_STREAM>>
+ZULIP_SITE                := <<ZULIP_SITE>>
+ZULIP_WORKSPACE           := <<WORKSPACE>>
+ZULIP_WORKSPACE_DIR_DEFAULT := $(HOME)/.local/share/zlp-harness/$(ZULIP_WORKSPACE)
+ZULIP_WORKSPACE_DIR       ?= $(ZULIP_WORKSPACE_DIR_DEFAULT)
 
-export ZULIP_CONFIG_FILE := $(ZULIP_CONFIG_DIR)/zuliprc
-export ZLP_ARCHIVE_ROOT  := $(ZULIP_LOCAL)
-export ZLP_RUN_ROOT      := $(ZULIP_LOCAL)/.run
+export ZULIP_CONFIG_FILE  := $(ZULIP_WORKSPACE_DIR)/zuliprc
+export ZLP_ARCHIVE_ROOT   := $(ZULIP_WORKSPACE_DIR)
+export ZLP_RUN_ROOT       := $(ZULIP_WORKSPACE_DIR)/.run
+ZULIP_DRAFTS_DIR          := $(ZULIP_WORKSPACE_DIR)/.drafts
 
 ZLP := zlp
 
 .PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages zulip-config
 
-# Stable KEY=VALUE contract for the zlp-harness plugin's zlp-onboard skill.
+# Stable KEY=VALUE contract for the zlp-harness plugin's skills.
 # Adding new keys is additive; older skill versions ignore unknown lines.
 zulip-config:
 	@echo "ZULIP_SITE=$(ZULIP_SITE)"
 	@echo "ZULIP_STREAM=$(ZULIP_STREAM)"
-	@echo "ZULIP_CONFIG_DIR_DEFAULT=$(ZULIP_CONFIG_DIR_DEFAULT)"
+	@echo "ZULIP_WORKSPACE=$(ZULIP_WORKSPACE)"
+	@echo "ZULIP_WORKSPACE_DIR_DEFAULT=$(ZULIP_WORKSPACE_DIR_DEFAULT)"
+	@echo "ZULIP_DRAFTS_DIR=$(ZULIP_DRAFTS_DIR)"
 
 zulip-whoami:
 	$(ZLP) whoami
