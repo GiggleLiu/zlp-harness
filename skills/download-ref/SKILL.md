@@ -89,7 +89,7 @@ For DOIs whose publisher gates the PDF (APS / Nature / IOP / AAAS / ACS), the he
 
 ### 3b. SciHub fallback for paywalled PDFs
 
-If step 3 reports `miss` for any DOI (no open-access PDF and no arXiv preprint), use the `sci-hub-server` MCP tool to fetch the PDF. This requires the `sci-hub-server` MCP to be configured in Claude's settings (see below).
+If step 3 reports `miss` for any DOI (no open-access PDF and no arXiv preprint), use the `sci-hub-server` MCP tool to fetch the PDF. This requires the `sci-hub-server` MCP to be configured in the agent client's settings (see below).
 
 For each missing DOI:
 
@@ -97,7 +97,7 @@ For each missing DOI:
 2. Call the MCP tool `mcp__sci-hub-server__download_pdf` with the URL and save to `$KB/.raw/doi/<safe>.pdf` (where `<safe>` = DOI with `/` → `-`).
 3. Verify the file exists and is > 1 KB.
 
-If the `sci-hub-server` MCP is not configured, tell the user to add it to their Claude settings:
+If the `sci-hub-server` MCP is not configured, tell the user to add it to their agent-client settings:
 
 ```json
 "mcpServers": {
@@ -159,9 +159,20 @@ done
 
 Tell the user the new file names + the canonical IDs, and whether `full_text` came through (`yes`/`no`).
 
-### 7. Append to `ref.bib` (interactive cite-key confirmation)
+### 7. Append to `ref.bib` only when this repo has a LaTeX draft
 
-`ref.bib` lives at the repo root and is shared by `main.tex`, `report/*.tex`, `survey/*.tex`. After fetching, **propose** a cite key, **confirm with the user** via `AskUserQuestion`, then **append**.
+Fresh harnesses usually have no LaTeX draft yet. Before proposing BibTeX changes, check whether `ref.bib` or a known draft entrypoint exists:
+
+```sh
+test -f "$(dirname "$KB")/ref.bib" || \
+test -f "$(dirname "$KB")/main.tex" || \
+test -d "$(dirname "$KB")/report" || \
+test -d "$(dirname "$KB")/survey"
+```
+
+If none of those exists, skip this step and tell the user: "No LaTeX draft or `ref.bib` found, so I left BibTeX untouched." The rendered `.knowledge/` entry is still complete.
+
+If a draft exists, `ref.bib` lives at the repo root and is shared by `main.tex`, `report/*.tex`, `survey/*.tex`. After fetching, **propose** a cite key, **confirm with the user**, then **append**.
 
 #### 7a. Propose
 
@@ -172,7 +183,7 @@ python3 $HELPERS/append_bibtex.py propose \
   --kb "$KB" --id 1806.08734 --type arxiv
 ```
 
-Output is JSON with `proposed_key` (form `lastname_year_firstkeyword`, e.g. `rahaman_2018_spectral`) and `bibtex_with_proposed_key`. Show the user the proposed key together with the title and ask via `AskUserQuestion`:
+Output is JSON with `proposed_key` (form `lastname_year_firstkeyword`, e.g. `rahaman_2018_spectral`) and `bibtex_with_proposed_key`. Show the user the proposed key together with the title and ask:
 - Accept the proposed key
 - Use a custom key (offer a free-text alternative)
 - Skip this entry (don't touch `ref.bib`)

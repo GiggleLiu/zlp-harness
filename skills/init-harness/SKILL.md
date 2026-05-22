@@ -1,6 +1,6 @@
 ---
 name: init-harness
-description: Use when the user wants to scaffold a new research-discussion harness — a private GitHub repo wired to a Zulip stream (any site — defaults to hkust-gz, override with `--zulip-site`), with `.knowledge/` for papers and a Makefile for the bridge. Triggers on "create a new harness", "scaffold a harness", "init harness for <topic>", "/init-harness", "set up a harness like qec.harness for X". Self-contained: bundles the canonical Makefile, CLAUDE.md template, and a thin project-level `onboard` skill that wires up the `zlp-harness` plugin; does not depend on any source repo.
+description: "Use when the user wants to scaffold a new research-discussion harness: a private GitHub repo wired to a Zulip stream, with .knowledge for papers and a Makefile for the bridge. Triggers on create a new harness, scaffold a harness, init harness for a topic, /init-harness, or set up a harness like qec.harness for another topic. Self-contained: bundles the canonical Makefile, CLAUDE.md template, and a thin project-level onboard skill that wires up the zlp-harness plugin; does not depend on any source repo."
 ---
 
 # init-harness
@@ -20,7 +20,7 @@ Do NOT use when:
 ```
 <topic>.harness/
   Makefile                        # zulip-* targets + zulip-config; ZULIP_STREAM/ZULIP_SITE/WORKSPACE substituted
-  CLAUDE.md                       # repo conventions for future Claude sessions
+  CLAUDE.md                       # repo conventions for future agent sessions
   README.md                       # single-prompt onboarding instruction
   AGENTS.md                       # @CLAUDE.md
   .gitignore                      # LaTeX + .knowledge/.raw + .claude/settings.local
@@ -37,7 +37,7 @@ All scaffold templates are bundled inside this skill at `templates/`. The skill 
 
 ## Inputs (collect once, up front)
 
-Bundle the questions into one `AskUserQuestion` exchange — don't ping per-field.
+Bundle the questions into one user prompt — don't ping per-field.
 
 | Input | Default | Notes |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ digraph init_harness {
 
 ### Phase 1 — Scaffold
 
-Run the bundled helper. The `SKILL_DIR` must point to wherever this skill is installed — if loaded from the `zlp-harness` plugin, use the plugin cache path; if loaded from `~/.claude/skills/init-harness`, use that. Claude: resolve this by finding `scaffold.py` via the skill's own directory (the directory containing this `SKILL.md`).
+Run the bundled helper. The `SKILL_DIR` must point to wherever this skill is installed. Resolve this by finding `scaffold.py` via the skill's own directory (the directory containing this `SKILL.md`).
 
 ```sh
 SKILL_DIR="<path-to-this-skill's-directory>"
@@ -124,14 +124,14 @@ Skip this whole phase if `github-remote` is empty.
 
 ### Phase 3 — Onboard the user to the new harness
 
-The new harness ships a project-level `.claude/skills/onboard/SKILL.md`. It is a project-local skill — `Skill("onboard")` will resolve to it only when Claude Code is launched from inside the new harness directory.
+The new harness ships a project-level `.claude/skills/onboard/SKILL.md`. It is a project-local skill and resolves only when the agent client is launched from inside the new harness directory.
 
 ```sh
 cd "<target-dir>"
 # Then read and follow .claude/skills/onboard/SKILL.md directly. It will:
 #   1. (First call) edit ~/.claude/settings.json to enable the zlp-harness
-#      plugin, then ask the user to restart Claude Code.
-#   2. (After restart) delegate to Skill("zlp-harness:zlp-onboard") which
+#      plugin, then ask the user to restart the agent client.
+#   2. (After restart) delegate to zlp-harness:zlp-onboard, which
 #      reads `make zulip-config` from this harness for site/path/stream
 #      values, walks zlp-cli + zuliprc + verification, runs the
 #      initial message sync, and recommends adding key refs.

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents working in this repository.
 
 ## Repository purpose
 
@@ -16,7 +16,7 @@ Git remote: `<<GITHUB_REMOTE>>` (private).
 
 Manual checklist if you'd rather DIY:
 
-1. **Claude Code installed** — the project-level `onboard` skill at `.claude/skills/onboard/` auto-loads when you open this directory with `claude`. The `zulip-reply` and `download-ref` skills come from the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, enabled automatically by `onboard` on first run.
+1. **Supported agent client installed** — the project-level `onboard` skill at `.claude/skills/onboard/` loads when your client opens this directory. The `zulip-reply` and `download-ref` skills come from the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, enabled automatically by `onboard` on first run.
 2. **`zlp` CLI** — `pip install zlp-cli`. Used by every `make zulip-*` target.
 3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, click your avatar or initials, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. The file usually lands in `~/Downloads/zuliprc`; some browsers may call it `zuliprc.txt` or `zuliprc (1)`. Save the file to:
    ```
@@ -86,7 +86,7 @@ Use these sources when looking for current external updates during weekly adviso
 
 ## Adding a new reference (`download-ref` skill)
 
-`download-ref` is the entry point for any "add this arXiv/DOI to the KB" request. It is documented in `.claude/skills/download-ref/SKILL.md` and calls helpers under `.claude/skills/download-ref/helpers/` (in-tree, no external dependency):
+`download-ref` is the entry point for any "add this arXiv/DOI to the KB" request. It is provided by the `zlp-harness` plugin and resolves its bundled helper scripts from the plugin skill directory:
 
 1. `fetch_metadata.py --kb .knowledge --manifest <json> --download-arxiv-pdfs`
 2. `render.py --kb .knowledge` (uses `pymupdf4llm` if available — preserves figures; falls back to `markitdown` then `pdftotext`)
@@ -119,7 +119,7 @@ Caveats / gotchas:
 
 **"Post links to Zulip"** → Draft to `$(ZULIP_DRAFTS_DIR)/<file>.md` (workspace dir; read it via `make zulip-config`), then `make zulip-send TOPIC="<topic>" MSG_FILE="$(ZULIP_DRAFTS_DIR)/<file>.md"`. Match the existing message style in the target topic (concise, numbered, `[Title](URL)`); check with `make zulip-messages TOPIC="<topic>" LIMIT=5` first.
 
-**"Check Zulip" / "what did X say" / "draft a reply"** → invoke the **`zulip-reply` skill** (in `.claude/skills/zulip-reply/`). It pulls new messages, grounds each in `.knowledge/`, walks them one-by-one with quoted-body context, and asks before sending.
+**"Check Zulip" / "what did X say" / "draft a reply"** → invoke the **`zulip-reply` skill** from the plugin. It pulls new messages, grounds each in `.knowledge/`, walks them one-by-one with quoted-body context, and asks before sending.
 
 **"Weekly advisor check" / "student TODOs" / "latest updates for the project"** → invoke the **`zlp-advisor` skill** from the plugin. It reviews the last week of Zulip discussion, checks that student TODOs are created and respected, searches reliable current sources, and drafts a weekly advisor post for approval.
 

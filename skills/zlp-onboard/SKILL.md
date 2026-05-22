@@ -1,6 +1,6 @@
 ---
 name: zlp-onboard
-description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), creates the global workspace directory at `~/.local/share/zlp-harness/<workspace>/` and places `zuliprc` there, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill via `Skill("zlp-harness:zlp-onboard")`.
+description: Use when a new collaborator on any zlp-harness-based repo needs to bootstrap their machine — checks what's already installed, walks them through getting a Zulip API key for the harness's site (read from `make zulip-config`), creates the global workspace directory at `~/.local/share/zlp-harness/<workspace>/` and places `zuliprc` there, and verifies the bridge works. Triggers on "I just cloned this", "first time setup", "onboard me", "help me get started", "set up zulip", "/zlp-onboard", or when invoked by a harness's project-level onboard skill.
 ---
 
 # zlp-onboard
@@ -23,12 +23,14 @@ The skill is interactive — it detects state and asks for what's missing. No re
 
 ### Step 0 — Read harness config
 
-Every site/path/stream value below is read from the harness's Makefile via `make zulip-config`. Run this once at the start of the skill and use the resulting `CFG_*` env vars throughout.
+Every site/path/stream value below is read from the harness's Makefile via `make zulip-config`. Resolve `HELPERS` to this skill's bundled `helpers/` directory, then run the parser once at the start of the skill and use the resulting `CFG_*` env vars throughout.
 
 ```sh
-# Load harness config from the Makefile. Single-quote each value
-# so future stream names with whitespace or shell metacharacters parse safely.
-eval "$(make zulip-config | sed 's/^\([^=]*\)=\(.*\)$/CFG_\1=\x27\2\x27/')"
+HELPERS="<path-to-this-skill's-directory>/helpers"
+
+# Load harness config from the Makefile. The helper parses the KEY=VALUE
+# contract strictly and emits shell-safe CFG_* assignments.
+eval "$(python3 "$HELPERS/read_zulip_config.py" --format shell)"
 
 # Should now have:
 #   $CFG_ZULIP_SITE                  e.g. https://quantum-info.zulipchat.com

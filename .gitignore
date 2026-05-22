@@ -1,0 +1,17 @@
+# Python bytecode caches
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtualenvs
+.venv/
+venv/
+
+# macOS metadata
+.DS_Store
+
+# Editor / scratch
+*.swp
+*.swo
+*~

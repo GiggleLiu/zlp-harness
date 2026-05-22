@@ -1,6 +1,6 @@
 ---
 name: zulip-reply
-description: Use when the user wants to check the project's Zulip stream and (usually) draft a reply — pulls new messages, builds context from the project library, brainstorms reply framings, and sends only after explicit approval. Triggers on phrases like "check zulip", "any new messages", "what did <name> say", "reply to that", "/zulip", "/zulip-reply".
+description: "Use when the user wants to check the project's Zulip stream and usually draft a reply: pulls new messages, builds context from the project library, brainstorms reply framings, and sends only after explicit approval. Triggers on phrases like check zulip, any new messages, what did someone say, reply to that, /zulip, or /zulip-reply."
 ---
 
 # zulip-reply

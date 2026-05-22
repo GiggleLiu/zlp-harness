@@ -20,7 +20,7 @@ The thin project-level `onboard` skill at templates/skills/onboard/SKILL.md
 is copied into <target>/.claude/skills/onboard/SKILL.md with substitution.
 The plugin's `zlp-onboard`, `zulip-reply`, and `download-ref` skills are
 NOT bundled per-repo — they come from the zlp-harness plugin once it's
-enabled in the user's ~/.claude/settings.json (the bundled `onboard`
+enabled in the user's plugin settings (the bundled `onboard`
 skill does that on first run).
 """
 from __future__ import annotations
@@ -225,7 +225,7 @@ def main() -> int:
     print( "  2. Edit CLAUDE.md — fill in 'Repository purpose' and any linked external repos.")
     if args.github_remote:
         print(f"  3. (optional) gh repo create {args.github_remote} --private --source=. --push")
-    print( "  4. Open in Claude Code and run /onboard to enable the zlp-harness plugin and set up Zulip.")
+    print( "  4. Open in a supported agent client and run /onboard to enable the zlp-harness plugin and set up Zulip.")
     return 0
 
 

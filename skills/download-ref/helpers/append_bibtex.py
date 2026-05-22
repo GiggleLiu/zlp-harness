@@ -3,8 +3,8 @@
 Append BibTeX entry to ref.bib for a fetched ref.
 
 Reads citationStyles.bibtex from .raw/{arxiv,doi}/<id>.json, proposes a cite
-key in `lastname_year_firstword` form, prints both for the caller to confirm
-(via AskUserQuestion in the skill harness), then on confirmation rewrites the
+key in `lastname_year_firstword` form, prints both for the caller to confirm,
+then on confirmation rewrites the
 cite key and appends to ref.bib if not already present.
 
 Usage:

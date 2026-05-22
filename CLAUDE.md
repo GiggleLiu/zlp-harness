@@ -1,12 +1,12 @@
 # zlp-harness
 
-Claude Code plugin providing skills for Zulip-based research harness repos.
+Agent plugin providing skills for Zulip-based research harness repos.
 
 ## Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `zlp-onboard` | Bootstrap a collaborator's machine: install `zlp-cli`, help download `zuliprc`, create the global workspace directory, verify the Zulip bridge. Site-agnostic — reads site / workspace path / stream from each harness's `make zulip-config`. Usually invoked from a harness's project-level `onboard` skill via `Skill("zlp-harness:zlp-onboard")`. |
+| `zlp-onboard` | Bootstrap a collaborator's machine: install `zlp-cli`, help download `zuliprc`, create the global workspace directory, verify the Zulip bridge. Site-agnostic — reads site / workspace path / stream from each harness's `make zulip-config`. Usually invoked from a harness's project-level `onboard` skill. |
 | `download-ref` | Batch-fetch arXiv/DOI papers into `.knowledge/`, render to markdown, regenerate INDEX. Falls back to SciHub MCP for paywalled DOIs. |
 | `zulip-reply` | Pull new Zulip messages, build context from the project library, draft + send a reply. |
 | `zlp-advisor` | Weekly advisor pass: sync recent Zulip discussion, audit student TODOs, search `CLAUDE.md`-configured reliable current sources, draft a weekly update. |
@@ -18,7 +18,7 @@ Each harness repo provides:
 - `Makefile` with `ZULIP_STREAM`, the standard `make zulip-*` targets, **and a `make zulip-config` target** that prints stable `KEY=VALUE` lines (`ZULIP_SITE=...`, `ZULIP_STREAM=...`, `ZULIP_WORKSPACE=...`, `ZULIP_WORKSPACE_DIR_DEFAULT=...`, `ZULIP_DRAFTS_DIR=...`)
 - `CLAUDE.md` with repo-specific conventions
 - `.knowledge/` for the reference library
-- A thin project-level `.claude/skills/onboard/SKILL.md` that enables this plugin in the user's `~/.claude/settings.json` and then delegates to `Skill("zlp-harness:zlp-onboard")`
+- A thin project-level `.claude/skills/onboard/SKILL.md` that enables this plugin in the user's `~/.claude/settings.json` and then delegates to `zlp-harness:zlp-onboard`
 
 The skills are repo-agnostic — they read stream names and workspace conventions from each repo's `make zulip-config` output, not from hardcoded values. Adding fields to `make zulip-config` is additive — older plugin versions ignore unknown lines.
 
@@ -49,4 +49,4 @@ Add to `~/.claude/settings.json`:
 
 For local development, swap the source for `{ "source": "directory", "path": "/path/to/zlp-harness" }`.
 
-Each harness repo should ship an in-tree `onboard` skill at `.claude/skills/onboard/SKILL.md` that performs this edit automatically for collaborators on first clone, then delegates to `Skill("zlp-harness:zlp-onboard")` once the plugin is loaded. The project-level skill keeps the natural `/onboard` trigger; the namespaced `zlp-harness:zlp-onboard` is only invoked internally.
+Each harness repo should ship an in-tree `onboard` skill at `.claude/skills/onboard/SKILL.md` that performs this edit automatically for collaborators on first clone, then delegates to `zlp-harness:zlp-onboard` once the plugin is loaded. The project-level skill keeps the natural `/onboard` trigger; the namespaced `zlp-harness:zlp-onboard` is only invoked internally.
