@@ -5,7 +5,7 @@ Reads:
 - .raw/{arxiv,doi}/<id>.json — Semantic Scholar metadata (from fetch_metadata.py)
 - .raw/{arxiv,doi}/<id>.pdf — original PDFs (optional; rendered as full-text section)
 - .raw/repos/<owner>-<repo>/ — shallow clones (rendered as README + ls-tree)
-- .raw/web/<slug>.html or .raw/web/<slug>/ subdir — web page or local source dir
+- .raw/web/<slug>.html or .raw/web/<slug>/ subdir — web page or bundled source dir
 - A manifest JSON describing web entries and bib stubs (titles/sources/notes)
 
 Manifest schema (web/stub only — arxiv/doi/github are auto-discovered from .raw/):
@@ -25,6 +25,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 SLUG_NON_ALNUM = re.compile(r"[^a-z0-9]+")
@@ -104,29 +105,26 @@ def extract_pdf_text(pdf: Path, kb: Path | None = None, fig_subdir: str | None =
         except Exception as e:
             print(f"  pymupdf4llm {pdf.name}: {e}", file=sys.stderr)
 
-    tmp_md = Path("/tmp") / (pdf.stem + ".md")
-    tmp_txt = Path("/tmp") / (pdf.stem + ".txt")
-    if not text:
-        try:
-            r = subprocess.run(["markitdown", str(pdf), "-o", str(tmp_md)],
-                               capture_output=True, text=True, timeout=300)
-            if r.returncode == 0 and tmp_md.exists() and tmp_md.stat().st_size > 100:
-                text = tmp_md.read_text(errors="replace")
-        except Exception as e:
-            print(f"  markitdown {pdf.name}: {e}", file=sys.stderr)
-    if not text:
-        try:
-            r = subprocess.run(["pdftotext", "-layout", str(pdf), str(tmp_txt)],
-                               capture_output=True, text=True, timeout=120)
-            if r.returncode == 0 and tmp_txt.exists():
-                text = tmp_txt.read_text(errors="replace")
-        except Exception:
-            pass
-    for p in (tmp_md, tmp_txt):
-        try:
-            p.unlink()
-        except FileNotFoundError:
-            pass
+    with tempfile.TemporaryDirectory(prefix=f"{pdf.stem}-") as tmpdir:
+        tmp = Path(tmpdir)
+        tmp_md = tmp / (pdf.stem + ".md")
+        tmp_txt = tmp / (pdf.stem + ".txt")
+        if not text:
+            try:
+                r = subprocess.run(["markitdown", str(pdf), "-o", str(tmp_md)],
+                                   capture_output=True, text=True, timeout=300)
+                if r.returncode == 0 and tmp_md.exists() and tmp_md.stat().st_size > 100:
+                    text = tmp_md.read_text(errors="replace")
+            except Exception as e:
+                print(f"  markitdown {pdf.name}: {e}", file=sys.stderr)
+        if not text:
+            try:
+                r = subprocess.run(["pdftotext", "-layout", str(pdf), str(tmp_txt)],
+                                   capture_output=True, text=True, timeout=120)
+                if r.returncode == 0 and tmp_txt.exists():
+                    text = tmp_txt.read_text(errors="replace")
+            except Exception:
+                pass
     return text.strip()
 
 

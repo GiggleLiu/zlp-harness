@@ -11,7 +11,7 @@ Mirror the project's Zulip stream into the workspace archive, scan the newest co
 
 **Project-specific values — stream name, archive layout, library locations, search recipes — live in `CLAUDE.md` (under "Zulip channel"). The integration interface is a set of `make zulip-*` targets that each project provides; this skill calls them by name and lets the project's Makefile decide what runs underneath. Do not bypass the targets to call the underlying tool directly.**
 
-The archive lives in the global workspace directory (`~/.local/share/zlp-harness/<workspace>/`) — read the path from `make zulip-config` (`ZULIP_WORKSPACE_DIR_DEFAULT`). Drafts staged for `MSG_FILE=` go under `ZULIP_DRAFTS_DIR` from the same target.
+The archive lives in the global workspace directory reported by `make zulip-config` (`ZULIP_WORKSPACE_DIR_DEFAULT`, or a user-supplied `ZULIP_WORKSPACE_DIR` override). Drafts staged for `MSG_FILE=` go under `ZULIP_DRAFTS_DIR` from the same target.
 
 ## When to use
 

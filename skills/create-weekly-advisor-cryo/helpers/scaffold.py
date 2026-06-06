@@ -96,7 +96,7 @@ def copy_static(src: Path, dst: Path) -> None:
 
 def run_cryo_init(target: Path, agent: str) -> str:
     if not shutil.which("cryo"):
-        fail("cryo CLI not found on PATH. Install it with: cargo install --path ~/rcode/cryochamber")
+        fail("cryo CLI not found on PATH. Install it with: cargo install cryochamber")
     result = subprocess.run(
         ["cryo", "init", "--agent", agent],
         cwd=target,
@@ -179,7 +179,7 @@ def main() -> int:
         print(f"  {rel}")
     print("\nnext steps:")
     print(f"  1. Review {target / 'plan.md'}")
-    print("  2. Configure the messenger/mailbox bridge before team-channel posts")
+    print("  2. Review mailbox/outbox drafts before any separate messenger wiring")
     print(f"  3. When ready, run: cd {target} && cryo start")
     return 0
 

@@ -136,10 +136,10 @@ def main() -> int:
                     help="Zulip server URL (default: https://zulip.hkust-gz.edu.cn). "
                          "Examples: https://quantum-info.zulipchat.com, https://chat.zulip.org")
     ap.add_argument("--workspace", default=None,
-                    help="Zulip workspace slug — names the global workspace directory at "
-                         "~/.local/share/zlp-harness/<workspace>/ that holds zuliprc, archived "
-                         "messages, cursor state, and drafts. Default: derived from --zulip-site "
-                         "host (e.g. 'hkust-gz', 'quantum-info').")
+                    help="Zulip workspace slug — names the global workspace directory exposed "
+                         "by make zulip-config; it holds zuliprc, archived messages, cursor "
+                         "state, and drafts. Default: derived from --zulip-site host "
+                         "(e.g. 'hkust-gz', 'quantum-info').")
     ap.add_argument("--github-remote", default="",
                     help="<org>/<repo> for the README clone link (e.g. CodingThrust/qec.harness); "
                          "empty leaves a placeholder")

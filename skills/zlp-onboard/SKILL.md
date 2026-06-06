@@ -36,8 +36,8 @@ eval "$(python3 "$HELPERS/read_zulip_config.py" --format shell)"
 #   $CFG_ZULIP_SITE                  e.g. https://quantum-info.zulipchat.com
 #   $CFG_ZULIP_STREAM                e.g. LLM项目推进
 #   $CFG_ZULIP_WORKSPACE             e.g. quantum-info
-#   $CFG_ZULIP_WORKSPACE_DIR_DEFAULT e.g. /Users/<you>/.local/share/zlp-harness/quantum-info
-#   $CFG_ZULIP_DRAFTS_DIR            e.g. /Users/<you>/.local/share/zlp-harness/quantum-info/.drafts
+#   $CFG_ZULIP_WORKSPACE_DIR_DEFAULT e.g. <workspace-dir>
+#   $CFG_ZULIP_DRAFTS_DIR            e.g. <workspace-dir>/.drafts
 
 echo "site:          $CFG_ZULIP_SITE"
 echo "stream:        $CFG_ZULIP_STREAM"
@@ -62,7 +62,7 @@ echo "$WS_DIR"
 echo "=== zuliprc present? ==="
 ls -la "$WS_DIR/zuliprc" 2>&1 || echo "(missing at $WS_DIR/zuliprc)"
 
-echo "=== pymupdf4llm available to /usr/bin/env python3? ==="
+echo "=== pymupdf4llm available to python3? ==="
 python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)" 2>&1 || echo "(missing — only needed for download-ref)"
 ```
 
@@ -70,7 +70,7 @@ Report a short status table to the user before proposing actions, e.g.:
 
 ```
 zlp-cli              ✓ installed (1.4.0)
-workspace directory  ~/.local/share/zlp-harness/<workspace> (will be created)
+workspace directory  <workspace-dir> (will be created)
 zuliprc              ✗ missing at <workspace-dir>/zuliprc
 pymupdf4llm          ✗ missing (optional — only for adding new refs)
 
@@ -103,11 +103,7 @@ This step is **manual on the user's side** — no script can do it. Walk them th
 4. Find **API key** and click **Show/change your API key**.
 5. Click **Download zuliprc**.
 
-Hint for the user: the downloaded file is usually named `zuliprc` and lands in `~/Downloads/`. Some browsers rename it to `zuliprc.txt` or `zuliprc (1)` if a file already exists. If they are not sure where it went, have them look in the browser's downloads list or run:
-
-```sh
-ls -lt ~/Downloads/zuliprc* 2>/dev/null | head
-```
+Hint for the user: the downloaded file is usually named `zuliprc`. Some browsers rename it to `zuliprc.txt` or `zuliprc (1)` if a file already exists. If they are not sure where it went, have them look in the browser's downloads list.
 
 The file looks like:
 
@@ -126,11 +122,12 @@ There is no pre-existing workspace directory on a fresh collaborator machine. Cr
 
 ```sh
 mkdir -p "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT"
-mv ~/Downloads/zuliprc "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/zuliprc"
+ZULIPRC_SOURCE="<path-to-downloaded-zuliprc>"
+mv "$ZULIPRC_SOURCE" "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/zuliprc"
 chmod 600 "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT/zuliprc"   # contains an API key
 ```
 
-If the browser used a different filename, replace `~/Downloads/zuliprc` with the actual downloaded path. Do not open or print the file contents.
+Replace `<path-to-downloaded-zuliprc>` with the actual downloaded path. Do not open or print the file contents. If `chmod` is unavailable on the user's platform, use the platform's normal file-permission tool to restrict the file to the current user.
 
 If the user wants to keep the workspace somewhere else, set `ZULIP_WORKSPACE_DIR` for that custom location:
 
@@ -175,8 +172,8 @@ Should list topics in `$CFG_ZULIP_STREAM`. If the stream has no topics yet, the 
 Only needed if they'll use the `download-ref` skill to add new arXiv/DOI papers to `.knowledge/`. Reading the existing library doesn't need it.
 
 ```sh
-# Check which python3 the renderer will use:
-which python3
+# Print the python3 interpreter the renderer will use:
+python3 -c "import sys; print(sys.executable)"
 
 # Install for that interpreter:
 python3 -m pip install --user pymupdf4llm
@@ -298,7 +295,7 @@ After this, the user should:
 | Hardcoding "hkust-gz" or any other site label into the prompts you show the user | All site/path values come from `make zulip-config`. Re-read Step 0; do not paste site URLs from memory. |
 | Running this skill from outside a harness directory | `make zulip-config` only exists inside a harness root. cd into the repo first. |
 | Pasting the zuliprc contents into chat | Don't. Keys are secrets. Have the user `mv` the downloaded file locally. |
-| Installing pymupdf4llm into a different Python environment than `python3` uses | Run `which python3` first, then install for *that* interpreter. The renderer runs `python3` directly. |
+| Installing pymupdf4llm into a different Python environment than `python3` uses | Run `python3 -c "import sys; print(sys.executable)"` first, then install for *that* interpreter. The renderer runs `python3` directly. |
 | Putting `zuliprc` directly under the repo | Keep secrets out of the checkout. Put it in the workspace directory printed by `make zulip-config`. |
 | Forgetting `chmod 600 zuliprc` | The key is in plain text. World-readable mode bits leak it to anyone with shell access. |
 | Treating `make zulip-pull` `archived=0` as a failure | It just means no new messages since the last pull. Not an error. |

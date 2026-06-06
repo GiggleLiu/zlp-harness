@@ -42,6 +42,18 @@ FORBIDDEN_TOOL_REFERENCES = (
     "available-skills system reminder",
 )
 
+FORBIDDEN_LOCAL_OS_REFERENCES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"/home/"), "hard-coded Linux home path"),
+    (re.compile(r"/Users/"), "hard-coded macOS home path"),
+    (re.compile(r"C:\\\\"), "hard-coded Windows drive path"),
+    (re.compile(r"~/Downloads"), "hard-coded browser download directory"),
+    (re.compile(r"~/rcode"), "hard-coded local source checkout"),
+    (re.compile(r"xdg-open"), "Linux-specific URL opener"),
+    (re.compile(r"\bopen <url>` on macOS"), "macOS-specific URL opener"),
+    (re.compile(r'Path\("/tmp"\)'), "hard-coded temporary directory"),
+    (re.compile(r"\bwhich python3\b"), "POSIX-specific interpreter lookup"),
+)
+
 
 def run(cmd: list[str], *, cwd: Path, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=cwd, input=input_text, text=True, capture_output=True)
@@ -117,6 +129,14 @@ def validate_no_tool_references(errors: list[str]) -> None:
         for token in FORBIDDEN_TOOL_REFERENCES:
             if token in text:
                 fail(errors, f"{path}: contains platform-specific tool reference {token!r}")
+
+
+def validate_no_local_os_references(errors: list[str]) -> None:
+    for path in sorted(p for p in SKILLS.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern, label in FORBIDDEN_LOCAL_OS_REFERENCES:
+            if pattern.search(text):
+                fail(errors, f"{path}: contains {label}")
 
 
 def validate_zulip_config_helper(errors: list[str]) -> None:
@@ -336,6 +356,7 @@ def main() -> int:
 
     compile_helpers(errors)
     validate_no_tool_references(errors)
+    validate_no_local_os_references(errors)
     validate_zulip_config_helper(errors)
     validate_scaffold(errors)
     validate_weekly_advisor_cryo_helper(errors)
