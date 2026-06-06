@@ -1,6 +1,6 @@
 # zlp-harness
 
-Agent plugin providing shared skills for Zulip-based research harness repos. It handles collaborator onboarding, reference downloads into `.knowledge/`, Zulip reply drafting, and scaffolding new `<topic>.harness` repos.
+Agent plugin providing shared skills for Zulip-based research harness repos. It handles collaborator onboarding, reference downloads into `.knowledge/`, Zulip reply drafting, scaffolding new `<topic>.harness` repos, and creating scheduled weekly advisor Cryochamber chambers.
 
 Harness repos stay small: each one provides its own `Makefile`, `CLAUDE.md`, and `.knowledge/` library; this plugin supplies the reusable workflows.
 

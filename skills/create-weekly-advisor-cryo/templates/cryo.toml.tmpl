@@ -1,0 +1,18 @@
+# cryo.toml - Cryochamber project configuration
+
+# Agent command (for example: "opencode", "claude", "codex")
+agent = "<<AGENT>>"
+
+# Session timeout in seconds. 0 disables the timeout, matching the benchmark
+# chamber pattern for long weekly review sessions.
+max_session_duration = 0
+
+# Wake on operator messages and external mailbox/team-channel messages.
+watch_dirs = ["messages/inbox", "mailbox/inbox"]
+
+# Provider environment injected into the agent process.
+# WARNING: If you add API keys here, keep this file out of public repos.
+#
+# [provider]
+# name = "opencode"
+# env = { OPENCODE_PROVIDER = "anthropic", OPENCODE_MODEL = "claude-sonnet-4-20250514", ANTHROPIC_API_KEY = "sk-ant-..." }

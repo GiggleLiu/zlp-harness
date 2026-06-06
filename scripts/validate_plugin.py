@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -129,7 +130,7 @@ def validate_zulip_config_helper(errors: list[str]) -> None:
     sample = (
         "ZULIP_SITE=https://quantum-info.zulipchat.com\n"
         f"ZULIP_STREAM={stream}\n"
-        f"ZULIP_CONFIG_DIR_DEFAULT={cfg_dir}\n"
+        f"ZULIP_WORKSPACE_DIR_DEFAULT={cfg_dir}\n"
     )
     parsed = run(
         [sys.executable, str(helper), "--from-stdin", "--format", "shell"],
@@ -148,7 +149,7 @@ def validate_zulip_config_helper(errors: list[str]) -> None:
                 'eval "$1"; '
                 'test "$CFG_ZULIP_SITE" = "https://quantum-info.zulipchat.com" && '
                 'test "$CFG_ZULIP_STREAM" = "$2" && '
-                'test "$CFG_ZULIP_CONFIG_DIR_DEFAULT" = "$3"'
+                'test "$CFG_ZULIP_WORKSPACE_DIR_DEFAULT" = "$3"'
             ),
             "sh",
             parsed.stdout,
@@ -171,8 +172,8 @@ def validate_zulip_config_helper(errors: list[str]) -> None:
             "ZULIP_WORKSPACE_DEFAULT=/tmp/legacy\n"
         ),
     )
-    if compat.returncode != 0 or '"ZULIP_CONFIG_DIR_DEFAULT": "/tmp/legacy"' not in compat.stdout:
-        fail(errors, f"{helper}: did not map legacy ZULIP_WORKSPACE_DEFAULT to ZULIP_CONFIG_DIR_DEFAULT")
+    if compat.returncode != 0 or '"ZULIP_WORKSPACE_DIR_DEFAULT": "/tmp/legacy"' not in compat.stdout:
+        fail(errors, f"{helper}: did not map legacy ZULIP_WORKSPACE_DEFAULT to ZULIP_WORKSPACE_DIR_DEFAULT")
 
 
 def validate_scaffold(errors: list[str]) -> None:
@@ -203,7 +204,7 @@ def validate_scaffold(errors: list[str]) -> None:
         cfg = run(["make", "-C", str(target), "zulip-config"], cwd=ROOT)
         if cfg.returncode != 0:
             fail(errors, f"generated make zulip-config failed:\n{cfg.stderr or cfg.stdout}")
-        for key in ("ZULIP_SITE=", "ZULIP_STREAM=", "ZULIP_CONFIG_DIR_DEFAULT="):
+        for key in ("ZULIP_SITE=", "ZULIP_STREAM=", "ZULIP_WORKSPACE_DIR_DEFAULT="):
             if key not in cfg.stdout:
                 fail(errors, f"generated zulip-config missing {key}")
 
@@ -214,7 +215,7 @@ def validate_scaffold(errors: list[str]) -> None:
         for expected in (
             '"ZULIP_SITE": "https://quantum-info.zulipchat.com"',
             '"ZULIP_STREAM": "project-validate-probe"',
-            '"ZULIP_CONFIG_DIR_DEFAULT":',
+            '"ZULIP_WORKSPACE_DIR_DEFAULT":',
         ):
             if expected not in helper_result.stdout:
                 fail(errors, f"zulip-config helper output missing {expected}")
@@ -231,6 +232,102 @@ def validate_scaffold(errors: list[str]) -> None:
                     fail(errors, f"{path.relative_to(target)} references stale plugin path {stale}")
 
 
+def validate_weekly_advisor_cryo_helper(errors: list[str]) -> None:
+    helper = SKILLS / "create-weekly-advisor-cryo" / "helpers" / "scaffold.py"
+    if not helper.exists():
+        fail(errors, f"{helper}: missing weekly advisor cryo scaffold helper")
+        return
+
+    with tempfile.TemporaryDirectory(prefix="weekly-advisor-cryo-validate-") as tmp:
+        target = Path(tmp) / "qtest-advisor.harness"
+        result = run(
+            [
+                sys.executable,
+                str(helper),
+                "--target-dir",
+                str(target),
+                "--project-name",
+                "Quantum Test",
+                "--operator",
+                "Dr. Q",
+                "--zulip-site",
+                "https://example.zulipchat.com",
+                "--zulip-stream",
+                "project-qtest",
+                "--zulip-topic",
+                "weekly advisor",
+                "--weekly-day",
+                "Tuesday",
+                "--weekly-time",
+                "10:30",
+                "--agent",
+                "codex",
+                "--skip-cryo-init",
+            ],
+            cwd=ROOT,
+        )
+        if result.returncode != 0:
+            fail(errors, f"weekly advisor cryo scaffold failed:\n{result.stderr or result.stdout}")
+            return
+
+        expected_files = (
+            "AGENTS.md",
+            "CLAUDE.md",
+            "README.md",
+            ".gitignore",
+            "plan.md",
+            "NOTES.md",
+            "cryo.toml",
+            "mailbox/README.md",
+            ".claude/skills/mailbox-send/SKILL.md",
+        )
+        for rel in expected_files:
+            if not (target / rel).exists():
+                fail(errors, f"weekly advisor cryo scaffold missing {rel}")
+
+        plan = (target / "plan.md").read_text(encoding="utf-8")
+        for expected in ("Quantum Test", "Dr. Q", "project-qtest", "weekly advisor", "Tuesday around 10:30"):
+            if expected not in plan:
+                fail(errors, f"weekly advisor cryo plan missing {expected!r}")
+
+        config = (target / "cryo.toml").read_text(encoding="utf-8")
+        if 'agent = "codex"' not in config:
+            fail(errors, "weekly advisor cryo config did not set requested agent")
+        if 'watch_dirs = ["messages/inbox", "mailbox/inbox"]' not in config:
+            fail(errors, "weekly advisor cryo config did not watch mailbox inbox")
+
+        for path in sorted(p for p in target.rglob("*") if p.is_file()):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if re.search(r"<<[A-Z0-9_]+>>", text):
+                fail(errors, f"{path.relative_to(target)} still contains a placeholder")
+
+        if shutil.which("cryo"):
+            cryo_target = Path(tmp) / "qtest-advisor-cryo-init.harness"
+            cryo_result = run(
+                [
+                    sys.executable,
+                    str(helper),
+                    "--target-dir",
+                    str(cryo_target),
+                    "--project-name",
+                    "Quantum Test",
+                    "--operator",
+                    "Dr. Q",
+                    "--zulip-site",
+                    "https://example.zulipchat.com",
+                    "--zulip-stream",
+                    "project-qtest",
+                    "--zulip-topic",
+                    "weekly advisor",
+                    "--agent",
+                    "codex",
+                ],
+                cwd=ROOT,
+            )
+            if cryo_result.returncode != 0:
+                fail(errors, f"weekly advisor cryo scaffold failed with cryo init:\n{cryo_result.stderr or cryo_result.stdout}")
+
+
 def main() -> int:
     errors: list[str] = []
 
@@ -241,6 +338,7 @@ def main() -> int:
     validate_no_tool_references(errors)
     validate_zulip_config_helper(errors)
     validate_scaffold(errors)
+    validate_weekly_advisor_cryo_helper(errors)
 
     if errors:
         print("validation failed:", file=sys.stderr)

@@ -10,6 +10,7 @@ Agent plugin providing skills for Zulip-based research harness repos.
 | `download-ref` | Batch-fetch arXiv/DOI papers into `.knowledge/`, render to markdown, regenerate INDEX. Falls back to SciHub MCP for paywalled DOIs. |
 | `zulip-reply` | Pull new Zulip messages, build context from the project library, draft + send a reply. |
 | `zlp-advisor` | Weekly advisor pass: sync recent Zulip discussion, audit student TODOs, search `CLAUDE.md`-configured reliable current sources, draft a weekly update. |
+| `create-weekly-advisor-cryo` | Scaffold a Cryochamber chamber that runs a recurring weekly advisor pass using the benchmark.harness pattern and `cryo` CLI. |
 | `init-harness` | Scaffold a new `<topic>.harness` repo (Makefile, CLAUDE.md, .knowledge/, .gitignore). |
 
 ## Architecture
