@@ -1,0 +1,36 @@
+{
+  "name": "zlp-harness",
+  "version": "0.1.0",
+  "description": "Shared skills for Zulip-based research harness repos: collaborator onboarding, reference downloads, Zulip reply drafting, and harness scaffolding.",
+  "author": {
+    "name": "Jin-Guo Liu"
+  },
+  "homepage": "https://github.com/GiggleLiu/zlp-harness",
+  "repository": "https://github.com/GiggleLiu/zlp-harness",
+  "license": "MIT",
+  "keywords": [
+    "zulip",
+    "harness",
+    "research",
+    "knowledge-base",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ZLP Harness",
+    "shortDescription": "Shared workflows for Zulip research harness repos.",
+    "longDescription": "Install reusable Codex skills for onboarding collaborators, downloading references into .knowledge, drafting Zulip replies, running advisor passes, and scaffolding new harness repos.",
+    "developerName": "Jin-Guo Liu",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use zlp-harness to onboard this repo.",
+      "Download these references into .knowledge.",
+      "Draft a Zulip reply for the latest thread."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

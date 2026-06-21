@@ -7,7 +7,9 @@ description: Use when the user asks for a weekly advisor check, student TODO fol
 
 ## Overview
 
-Run a weekly advisor pass over the harness Zulip stream: read the last week of discussion, audit student TODOs, find current reliable external updates from the last month, and draft a concise Zulip post. This skill is for recurring supervision; do not use it for ordinary one-off replies.
+Run a weekly advisor pass over the harness Zulip stream: read the last week of discussion, audit student TODOs, surface up to three key reads, and draft a concise Zulip post. This skill is for recurring supervision; do not use it for ordinary one-off replies.
+
+The post is deliberately minimal — two blocks only: a TODO audit and `Key reads (≤3)`. No greeting paragraph, no goal/recommendation sections.
 
 Use exact dates in summaries. Default "last week" to the last 7 calendar days ending today unless the user specifies a different weekly window.
 
@@ -52,7 +54,7 @@ Produce a private working summary grouped by topic:
 
 Identify students from project notes, recurring Zulip participants, or explicit user input. If a roster is ambiguous, ask the user once before posting.
 
-Build **one consolidated TODO table** across the whole team — not a separate audit per student. Pull TODO-like commitments from this week and the previous weekly advisor/TODO thread. Treat these as TODOs:
+Build **one consolidated TODO list** across the whole team — not a separate audit per student. Pull TODO-like commitments from this week and the previous weekly advisor/TODO thread. Treat these as TODOs:
 
 - explicit `TODO`, `to do`, `next week`, `plan`, `action item`
 - "I will...", "I'll...", "we should..." when assigned to a person
@@ -67,9 +69,9 @@ For every TODO, record: a one-line description, the owner, and a status. Statuse
 
 Do not invent completion status; rely on what Zulip actually shows. Do not overwrite a TODO with your own plan unless the draft clearly asks the owner to confirm or edit it.
 
-### Step 4 - Search current reliable sources (last 30 days only)
+### Step 4 - Search current reliable sources (last 7 days, or ≤3-year topic tie-ins)
 
-Browse for **updates published within the last 30 days** (calendar days, ending today). Anything older is out of scope for this section. Before searching, read the `Reliable update sources (zlp-advisor)` section in `CLAUDE.md` if present and use it as the source policy.
+Browse for **papers published within the last 7 calendar days** (ending today). You **may also** include a key paper up to **3 years** old when it ties directly to a topic discussed recently in the stream. The two kinds are mixable — pick the most useful, at most three total. Before searching, read the `Reliable update sources (zlp-advisor)` section in `CLAUDE.md` if present and use it as the source policy.
 
 Search based on:
 
@@ -84,11 +86,11 @@ Prefer reliable primary or near-primary sources:
 - official project docs, standards, datasets, benchmark pages, or release notes
 - Semantic Scholar / OpenAlex / Crossref only as discovery aids; verify important claims at the primary source
 
-Avoid unsourced social posts, SEO blogs, and generic news summaries unless the project domain specifically depends on them. If search results are weak, say so and post fewer (or zero) external updates rather than padding.
+Avoid unsourced social posts, SEO blogs, and generic news summaries unless the project domain specifically depends on them. If search results are weak, say so and post fewer (or zero) key reads rather than padding.
 
 If `CLAUDE.md` has no reliable-source section, pause and ask the user to choose source types, keywords, and important names/venues to watch.
 
-**Deduplicate before recommending.** For every candidate update, check:
+**Deduplicate before recommending.** For every candidate read, check:
 
 - `.knowledge/INDEX.md` and `.knowledge/` filenames — skip if the arXiv ID, DOI, or title already appears.
 - Recent Zulip messages (at least the last 8 weeks) — skip if the same paper/release was already linked or discussed.
@@ -96,10 +98,10 @@ If `CLAUDE.md` has no reliable-source section, pause and ask the user to choose 
 
 Match on arXiv ID, DOI, or normalized title (lowercased, punctuation stripped). When in doubt, do not recommend; note it as a near-duplicate in your working notes instead.
 
-Select **0-3** updates that survive both the recency and dedup filters. For each, record:
+Select **0-3** key reads that survive both the recency and dedup filters. For each, record:
 
 - title and link
-- publication date (must be within the last 30 days)
+- publication date (within the last 7 days, or ≤3 years old with a clear tie to a recent topic)
 - one-line factual summary
 - why it matters for this project (tied to a TODO, discussion, or `.knowledge/` reference)
 
@@ -111,30 +113,28 @@ Use the topic `weekly advisor` unless the project says otherwise. Verify it:
 make zulip-topics | grep -F "weekly advisor"
 ```
 
-Draft in `$CFG_ZULIP_DRAFTS_DIR/weekly-advisor-YYYY-MM-DD.md` (the workspace's `.drafts/` subdir, never inside the repo). Keep it short and human — a brief advisor note, not a report. Prefer short paragraphs and a few bullets.
+Draft in `$CFG_ZULIP_DRAFTS_DIR/weekly-advisor-YYYY-MM-DD.md` (the workspace's `.drafts/` subdir, never inside the repo). Keep it minimal — just the two blocks below, no preamble paragraph and no closing note.
 
 ```md
-Hi all, quick check-in for YYYY-MM-DD to YYYY-MM-DD.
+weekly advisor · YYYY-MM-DD → YYYY-MM-DD
 
-<One short paragraph: the most important thing that moved this week, with a link.>
+TODOs
 
-TODOs:
+- [In progress] @<owner> — <one-line task>
+- [At risk] @<owner> — <one-line task>
+- [Done] @<owner> — <one-line task>
+- [New] @<owner> — <one-line task>
 
-| TODO | Owner | Status |
-| --- | --- | --- |
-| <one-line task> | @<owner> | Done / In progress / At risk / New |
-| <one-line task> | @<owner> | ... |
-
-Recent reads (last 30 days):
+Key reads (≤3)
 
 - [<Title>](<url>) (<date>) — <one line on why it matters here>
 ```
 
 Rules before showing the draft:
 
-- Use a single TODO table; do not split per student. Every open TODO (across the team) should appear as a row with the owner flagged.
+- Use a single TODO list; do not split per student. Every open TODO (across the team) should appear as a bullet with the owner flagged.
 - Respect existing TODOs before adding new ones. Carried-over items keep their original wording where possible.
-- External updates section: 0-3 entries, every entry within the last 30 days, none duplicating `.knowledge/`, prior Zulip messages, or earlier weekly-advisor posts. Drop the section entirely if nothing qualifies.
+- Key reads: 0-3 entries, each from the last 7 days or a ≤3-year paper tied to a recently discussed topic, none duplicating `.knowledge/`, prior Zulip messages, or earlier weekly-advisor posts. Drop the section entirely if nothing qualifies.
 - No AI signature. The account name is the attribution.
 
 ### Step 6 - Review and send
@@ -160,12 +160,12 @@ After sending, confirm that the post was mirrored back into the workspace archiv
 
 - [ ] Zulip archive synced before analysis.
 - [ ] Exact date window stated.
-- [ ] Single consolidated TODO table, one row per open TODO, owner flagged on every row.
-- [ ] Every row has a status: Done / In progress / At risk / New.
-- [ ] Prior TODOs are respected, carried forward as rows, or explicitly flagged At risk.
-- [ ] External updates (if any) are all dated within the last 30 days.
-- [ ] External updates checked against `.knowledge/`, recent Zulip, and prior weekly-advisor posts — no duplicates.
-- [ ] Each external update states how it matters for this project.
+- [ ] Single consolidated TODO list, one bullet per open TODO, owner flagged on every bullet.
+- [ ] Every bullet has a status: Done / In progress / At risk / New.
+- [ ] Prior TODOs are respected, carried forward as bullets, or explicitly flagged At risk.
+- [ ] Key reads (if any) are each from the last 7 days, or a ≤3-year paper tied to a recently discussed topic — three at most.
+- [ ] Key reads checked against `.knowledge/`, recent Zulip, and prior weekly-advisor posts — no duplicates.
+- [ ] Each key read states how it matters for this project.
 - [ ] Draft shown to the user before posting.
 - [ ] Sent message mirrored back into the workspace archive.
 
@@ -173,14 +173,15 @@ After sending, confirm that the post was mirrored back into the workspace archiv
 
 | Mistake | Fix |
 | --- | --- |
-| Treating this as a normal reply | This is a weekly supervision pass: TODO audit plus current external updates. |
-| Splitting TODOs into per-student sections | One consolidated table; flag the owner in the row. |
-| Assigning new work while ignoring existing TODOs | Carry prior TODOs forward as rows first, then add new rows only when they do not conflict. |
+| Treating this as a normal reply | This is a weekly supervision pass: TODO audit plus up to three key reads. |
+| Splitting TODOs into per-student sections | One consolidated list; flag the owner in the bullet. |
+| Assigning new work while ignoring existing TODOs | Carry prior TODOs forward as bullets first, then add new ones only when they do not conflict. |
 | Inventing completion status | Use what Zulip actually shows; mark At risk when there is no acknowledgement. |
-| Generic encouragement | Tie feedback to a specific TODO row. |
+| Generic encouragement | Tie feedback to a specific TODO bullet. |
 | Guessing student status | Use Zulip evidence; mark unknown or blocked when evidence is absent. |
-| Posting stale "latest" updates | Only include sources published within the last 30 days. |
+| Posting stale "latest" reads | Include last-7-day papers, or a ≤3-year paper tied to a recently discussed topic. |
 | Recommending a paper already in the library | Check `.knowledge/INDEX.md`, recent Zulip, and prior weekly-advisor posts before listing. |
-| Listing papers without relevance | Each update must say how it helps this project. |
-| Padding the updates section | 0-3 entries; drop the section if nothing qualifies. |
+| Listing papers without relevance | Each key read must say how it helps this project. |
+| Padding the reads section | 0-3 entries; drop the section if nothing qualifies. |
+| Adding a greeting or closing paragraph | Two blocks only: TODO audit and Key reads. No prose. |
 | Sending without approval | Always show the draft and wait for explicit approval. |
