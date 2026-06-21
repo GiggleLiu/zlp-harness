@@ -134,7 +134,7 @@ Do **not** attempt to invoke `zlp-harness:zlp-onboard` in this same session — 
    Invoke the `zlp-harness:zlp-onboard` skill.
    ```
 
-   It reads `make zulip-config` from this repo's Makefile to learn the site URL, the default workspace directory, and the stream name, then walks the user through `zlp-cli` install, creating the global workspace directory at `~/.local/share/zlp-harness/<workspace>/`, `zuliprc` placement, verification with `make zulip-whoami`, the initial `make zulip-pull IMPORT_HISTORY=1` sync, a recommendation to add key arXiv/DOI references with `download-ref`, and reliable-source configuration for `zlp-advisor`.
+   It reads `make zulip-config` from this repo's Makefile to learn the site URL, the default workspace directory, and the stream name, then walks the user through `zlp-cli` install, creating the configured global workspace directory, `zuliprc` placement, verification with `make zulip-whoami`, the initial `make zulip-pull IMPORT_HISTORY=1` sync, a recommendation to add key arXiv/DOI references with `download-ref`, and reliable-source configuration for `zlp-advisor`.
 
 3. After `zlp-harness:zlp-onboard` finishes, confirm that message sync completed or that the stream currently has no messages. Then point the user at `/download-ref` for the project’s key references and `/zlp-advisor` for weekly advisor/TODO reviews.
 

@@ -1,0 +1,38 @@
+# <<PROJECT_NAME>> Weekly Advisor Cryo
+
+This is a Cryochamber chamber for a scheduled weekly advisor agent. It was scaffolded from the `create-weekly-advisor-cryo` skill and follows the benchmark.harness pattern.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `plan.md` | Standing weekly advisor mission. |
+| `cryo.toml` | Cryochamber config. |
+| `NOTES.md` | Durable agent memory. |
+| `CLAUDE.md` | Chamber operating instructions. |
+| `mailbox/` | Messenger inbox/outbox for team-channel messages. |
+| `.claude/skills/mailbox-send/` | Skill for writing valid mailbox outbox envelopes. |
+
+## Start
+
+Review `plan.md` and configure the messenger/mailbox bridge before starting a live weekly advisor.
+
+```sh
+cryo status
+cryo start
+cryo watch
+```
+
+To smoke test without team-channel posting:
+
+```sh
+cryo send --from operator --subject "smoke test" --wake "Confirm your weekly advisor mission, do not post to the team channel yet."
+```
+
+## Target
+
+- Operator: `<<OPERATOR>>`
+- Zulip site: `<<ZULIP_SITE>>`
+- Zulip stream: `<<ZULIP_STREAM>>`
+- Zulip topic: `<<ZULIP_TOPIC>>`
+- Weekly schedule: `<<WEEKLY_DAY>>` around `<<WEEKLY_TIME>>` local time

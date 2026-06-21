@@ -2,8 +2,8 @@
 """Read a harness Makefile's zulip-config contract safely.
 
 By default this runs `make zulip-config` in the current directory, parses
-KEY=VALUE lines, applies the legacy ZULIP_WORKSPACE_DEFAULT compatibility
-mapping, and prints either JSON or shell-safe CFG_* assignments.
+KEY=VALUE lines, applies legacy workspace-directory compatibility mappings,
+and prints either JSON or shell-safe CFG_* assignments.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import sys
 
 
 KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
-REQUIRED_KEYS = ("ZULIP_SITE", "ZULIP_STREAM", "ZULIP_CONFIG_DIR_DEFAULT")
+REQUIRED_KEYS = ("ZULIP_SITE", "ZULIP_STREAM", "ZULIP_WORKSPACE_DIR_DEFAULT")
 
 
 def parse_config(text: str) -> dict[str, str]:
@@ -35,8 +35,13 @@ def parse_config(text: str) -> dict[str, str]:
             raise ValueError(f"line {lineno}: NUL byte in value for {key}")
         out[key] = value
 
-    if "ZULIP_CONFIG_DIR_DEFAULT" not in out and "ZULIP_WORKSPACE_DEFAULT" in out:
-        out["ZULIP_CONFIG_DIR_DEFAULT"] = out["ZULIP_WORKSPACE_DEFAULT"]
+    if "ZULIP_WORKSPACE_DIR_DEFAULT" not in out:
+        if "ZULIP_CONFIG_DIR_DEFAULT" in out:
+            out["ZULIP_WORKSPACE_DIR_DEFAULT"] = out["ZULIP_CONFIG_DIR_DEFAULT"]
+        elif "ZULIP_WORKSPACE_DEFAULT" in out:
+            out["ZULIP_WORKSPACE_DIR_DEFAULT"] = out["ZULIP_WORKSPACE_DEFAULT"]
+    if "ZULIP_CONFIG_DIR_DEFAULT" not in out and "ZULIP_WORKSPACE_DIR_DEFAULT" in out:
+        out["ZULIP_CONFIG_DIR_DEFAULT"] = out["ZULIP_WORKSPACE_DIR_DEFAULT"]
     return out
 
 

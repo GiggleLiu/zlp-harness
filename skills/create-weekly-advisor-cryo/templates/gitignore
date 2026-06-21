@@ -1,0 +1,15 @@
+# Cryochamber runtime state
+cryo.log
+cryo-agent.log
+timer.json
+todo.json
+.cryo/
+messages/
+
+# Messenger inbox/outbox and delivered message state
+mailbox/
+
+# Local secrets and environment
+.env
+.env.*
+zuliprc

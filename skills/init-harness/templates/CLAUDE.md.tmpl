@@ -18,14 +18,14 @@ Manual checklist if you'd rather DIY:
 
 1. **Supported agent client installed** — the project-level `onboard` skill at `.claude/skills/onboard/` loads when your client opens this directory. The `zulip-reply` and `download-ref` skills come from the [`zlp-harness`](https://github.com/GiggleLiu/zlp-harness) plugin, enabled automatically by `onboard` on first run.
 2. **`zlp` CLI** — `pip install zlp-cli`. Used by every `make zulip-*` target.
-3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, click your avatar or initials, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. The file usually lands in `~/Downloads/zuliprc`; some browsers may call it `zuliprc.txt` or `zuliprc (1)`. Save the file to:
+3. **A Zulip API key for <<ZULIP_SITE>>** — log in at <<<ZULIP_SITE>>>, click your avatar or initials, then *Personal settings → Account & privacy → API key → Show/change your API key → Download zuliprc*. The file is usually named `zuliprc`; some browsers may call it `zuliprc.txt` or `zuliprc (1)`. Save the file as `<workspace-dir>/zuliprc`, where `<workspace-dir>` is the `ZULIP_WORKSPACE_DIR_DEFAULT` value from `make zulip-config` (or your `ZULIP_WORKSPACE_DIR` override).
    ```
-   ~/.local/share/zlp-harness/<<WORKSPACE>>/zuliprc
+   make zulip-config
    ```
-   Create the directory first if needed, then `chmod 600` the file. Do not paste the file contents into chat; it contains an API key.
+   Create the directory first if needed, then restrict the file to the current user (`chmod 600` on POSIX systems). Do not paste the file contents into chat; it contains an API key.
 4. **`pymupdf4llm`** (only needed when *adding new references* via the `download-ref` skill) — see the skill's "Preflight" section. Skip this until you actually need it.
 
-Verify with `make zulip-whoami` — should print your account. Then run `make zulip-pull IMPORT_HISTORY=1` once to sync the stream into the workspace directory (`~/.local/share/zlp-harness/<<WORKSPACE>>/`). After messages are synced, add the project’s key arXiv/DOI references with the `download-ref` skill so future work is grounded in the local `.knowledge/` library.
+Verify with `make zulip-whoami` — should print your account. Then run `make zulip-pull IMPORT_HISTORY=1` once to sync the stream into the configured workspace directory. After messages are synced, add the project’s key arXiv/DOI references with the `download-ref` skill so future work is grounded in the local `.knowledge/` library.
 
 ## Common commands
 
@@ -40,7 +40,7 @@ make zulip-topics                       # list topics
 make zulip-messages TOPIC=<topic-name> LIMIT=5
 make zulip-messages TOPIC=<topic-name> LIMIT=20 FORMAT=md
 
-# Mirror messages into the workspace dir (~/.local/share/zlp-harness/<<WORKSPACE>>/)
+# Mirror messages into the configured workspace dir
 make zulip-pull                         # incremental, all topics
 make zulip-pull TOPIC=<topic-name>      # narrow to one topic
 make zulip-pull IMPORT_HISTORY=1        # first-time backfill / reset cursor
@@ -93,14 +93,14 @@ Use these sources when looking for current external updates during weekly adviso
 3. `index.py --kb .knowledge --title "<<TOPIC>> — references" --source-note "Reading list and full-text harness for the <<TOPIC>> project. arXiv preprints, DOIs (with arXiv-preprint fallbacks where the publisher gates the PDF)."`
 
 Invariants the skill assumes:
-- The renderer needs `pymupdf4llm` available to whichever Python `python3` resolves to. Installing it into a different Python environment will not satisfy the helper — `which python3` first.
+- The renderer needs `pymupdf4llm` available to whichever Python `python3` resolves to. Installing it into a different Python environment will not satisfy the helper — run `python3 -c "import sys; print(sys.executable)"` first.
 - `--source-note` and `--title` strings must stay stable across runs or `INDEX.md` will churn. Copy them verbatim from the existing `INDEX.md` header on every re-run.
 
 When `download-ref` finishes, **do not** auto-append to `ref.bib` unless this repo has a LaTeX draft (`main.tex`) — the append step in the skill is dormant until then.
 
 ## Zulip channel — discussion archive
 
-Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into the global workspace directory `~/.local/share/zlp-harness/<<WORKSPACE>>/` (one folder per Zulip workspace, shared across every harness on the same workspace).
+Co-author chat lives in the **`<<ZULIP_STREAM>>`** stream on <<ZULIP_SITE>>. The `Makefile` at the repo root wraps the [`zlp`](https://pypi.org/project/zlp-cli/) CLI to mirror that stream into the global workspace directory printed by `make zulip-config` (one folder per Zulip workspace, shared across every harness on the same workspace).
 
 The Makefile pins the stream and exports the env vars `zlp` needs (`ZULIP_CONFIG_FILE`, `ZLP_ARCHIVE_ROOT`, `ZLP_RUN_ROOT`) — all of them point inside the workspace dir. On a fresh clone the workspace dir does not exist yet; `/onboard` creates it after the user downloads `zuliprc`. If `zlp` isn't installed: `pip install zlp-cli`. Commands are listed in the "Common commands" section above.
 

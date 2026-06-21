@@ -29,7 +29,7 @@ Do NOT use when:
   .claude/skills/onboard/SKILL.md # thin two-phase: enable plugin → delegate to zlp-harness:zlp-onboard
 ```
 
-Personal Zulip state — credentials, archived messages, cursor state, drafts — never lands in the repo. It all lives in a single global workspace directory at `~/.local/share/zlp-harness/<workspace>/` (one per Zulip server, shared across every harness on that server). The repo working tree only holds syncable harness configuration.
+Personal Zulip state — credentials, archived messages, cursor state, drafts — never lands in the repo. It all lives in the global workspace directory printed by `make zulip-config` as `ZULIP_WORKSPACE_DIR_DEFAULT` (one per Zulip server, shared across every harness on that server). The repo working tree only holds syncable harness configuration.
 
 The `zlp-onboard`, `download-ref`, `zulip-reply`, and `zlp-advisor` skills are **not** bundled per-repo — they are provided by the `zlp-harness` plugin. The only skill bundled into each harness is the project-level `onboard`, which exists to install/enable the plugin on a collaborator's first run and then delegate.
 
@@ -42,10 +42,10 @@ Bundle the questions into one user prompt — don't ping per-field.
 | Input | Default | Notes |
 | --- | --- | --- |
 | `topic` | (required) | lowercase, hyphenated slug. Examples: `qec`, `attention-solids`, `llm`. Used in repo / stream / file paths. |
-| `target-dir` | (required) | absolute path or expression like `~/code/<topic>.harness`. Must be empty or non-existent (the helper refuses non-empty unless `--force`). |
+| `target-dir` | (required) | Absolute path or user-expanded path for the new `<topic>.harness` checkout. Must be empty or non-existent (the helper refuses non-empty unless `--force`). |
 | `zulip-stream` | `project-<topic>` | the stream the bridge will target. Must already exist on Zulip — created via the web UI by an admin. |
 | `zulip-site` | `https://zulip.hkust-gz.edu.cn` | the Zulip server URL the harness uses. Override for non-hkust-gz sites (e.g. `https://quantum-info.zulipchat.com`). |
-| `workspace` | derived from `zulip-site` | Zulip workspace slug — names the global directory `~/.local/share/zlp-harness/<workspace>/` that holds zuliprc + archived messages + cursor state. Default: take the host's leftmost label (e.g. `hkust-gz`, `quantum-info`). |
+| `workspace` | derived from `zulip-site` | Zulip workspace slug — names the global workspace directory printed by `make zulip-config`. Default: take the host's leftmost label (e.g. `hkust-gz`, `quantum-info`). |
 | `github-remote` | (optional) | `<org>/<repo>` for the README clone link, e.g. `CodingThrust/<topic>.harness`. Empty leaves a `<org>/<repo>` placeholder. |
 | `topic-blurb` | (optional) | one paragraph for "Repository purpose". Empty leaves a TODO marker; user can edit `CLAUDE.md` afterwards. |
 | `git-init` | yes / no | run `git init` + a single seed commit. Default yes. |
@@ -85,8 +85,8 @@ python3 "$SKILL_DIR/helpers/scaffold.py" \
   --topic           "<topic>" \
   --target-dir      "<target-dir>" \
   --zulip-stream    "project-<topic>" \
-  --zulip-site      "https://zulip.hkust-gz.edu.cn" \
-  --workspace       "hkust-gz" \
+  --zulip-site      "<zulip-site-url>" \
+  --workspace       "<workspace-slug>" \
   --github-remote   "CodingThrust/<topic>.harness" \
   --topic-blurb     "<one paragraph, or empty>" \
   --git-init                                      # omit to skip git init

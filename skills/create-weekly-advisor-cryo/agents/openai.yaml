@@ -1,0 +1,4 @@
+interface:
+  display_name: "Weekly Advisor Cryo"
+  short_description: "Scaffold weekly advisor cryo chambers"
+  default_prompt: "Use $create-weekly-advisor-cryo to scaffold a weekly advisor cryochamber for this research harness."

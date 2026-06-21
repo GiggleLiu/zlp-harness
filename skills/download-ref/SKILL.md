@@ -25,7 +25,7 @@ python3 -c "import pymupdf4llm; print('ok', pymupdf4llm.__version__)"
 If that errors, install for the **same** `python3` the helpers will use. Check the interpreter first:
 
 ```sh
-which python3
+python3 -c "import sys; print(sys.executable)"
 python3 -m pip install --user pymupdf4llm
 
 # If pip reports an externally-managed-environment / PEP 668 error:
